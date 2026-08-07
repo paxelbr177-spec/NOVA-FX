@@ -291,17 +291,28 @@ function openTransactionModal(txData) {
     const qrCodeText = txData.pixPayment.qrCode;
     document.getElementById('pix-code-text').value = qrCodeText;
 
-    // Generar código QR visual en canvas
+    // Generar o renderizar imagen oficial de Mercado Pago
     const qrContainer = document.getElementById('qrcode-container');
     qrContainer.innerHTML = '';
-    new QRCode(qrContainer, {
-      text: qrCodeText,
-      width: 180,
-      height: 180,
-      colorDark: "#0B0E14",
-      colorLight: "#ffffff",
-      correctLevel: QRCode.CorrectLevel.H
-    });
+
+    if (txData.pixPayment.qrCodeBase64) {
+      qrContainer.innerHTML = `<img src="data:image/png;base64,${txData.pixPayment.qrCodeBase64}" width="180" height="180" style="border-radius:12px;" alt="QR PIX Mercado Pago" />`;
+    } else {
+      new QRCode(qrContainer, {
+        text: qrCodeText,
+        width: 180,
+        height: 180,
+        colorDark: "#0B0E14",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H
+      });
+    }
+
+    const ticketLinkEl = document.getElementById('pix-ticket-link');
+    if (ticketLinkEl && txData.pixPayment.ticketUrl) {
+      ticketLinkEl.href = txData.pixPayment.ticketUrl;
+      ticketLinkEl.classList.remove('hidden');
+    }
   }
 
   updateModalStepper(txData.status || 'PENDING_PAYMENT');

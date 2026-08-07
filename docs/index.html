@@ -338,9 +338,14 @@
               <span class="label">Código PIX Copia e Cola:</span>
               <div class="pix-code-box">
                 <textarea id="pix-code-text" readonly rows="3"></textarea>
-                <button class="btn-primary-glow btn-sm" onclick="copyPixCode()">
-                  <i data-lucide="copy"></i> Copiar Código PIX
-                </button>
+                <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;">
+                  <button class="btn-primary-glow btn-sm" onclick="copyPixCode()">
+                    <i data-lucide="copy"></i> Copiar Código PIX
+                  </button>
+                  <a id="pix-ticket-link" href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary btn-sm hidden" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
+                    <i data-lucide="external-link"></i> Pagar en Mercado Pago Brasil
+                  </a>
+                </div>
               </div>
             </div>
           </div>

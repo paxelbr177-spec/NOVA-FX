@@ -58,13 +58,15 @@ class MercadoPagoService {
      * @returns {Promise<Object>} Datos del pago generado.
      */
     async createPixPayment({ amount, description, externalReference, payerEmail }) {
+        const expirationDate = new Date(Date.now() + 30 * 60 * 1000).toISOString();
         const payload = {
             transaction_amount: Number(amount),
             description: description,
             payment_method_id: 'pix',
             external_reference: externalReference,
+            date_of_expiration: expirationDate,
             payer: {
-                email: payerEmail
+                email: (payerEmail && payerEmail.includes('@')) ? payerEmail : 'cliente@brasil.com'
             }
         };
 
