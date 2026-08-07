@@ -117,8 +117,13 @@ class ExchangeEngine {
             logger.info(`[ExchangeEngine] Flujo A iniciado: ${transactionId} (${amountARS} ARS → BRL, MP AR Pref: ${arsPayment.preferenceId})`);
 
             return {
-                transactionId: tx.transaction_id,
+                transactionId: tx.transaction_id || transactionId,
+                type: 'ARS_TO_BRL',
                 status: 'PENDING_PAYMENT',
+                amountSource: amountARS,
+                currencySource: 'ARS',
+                amountTarget: quote.amountTarget,
+                currencyTarget: 'BRL',
                 arsPayment: {
                     preferenceId: arsPayment.preferenceId,
                     checkoutUrl: arsPayment.initPoint,       // URL de checkout real
@@ -175,8 +180,13 @@ class ExchangeEngine {
             logger.info(`[ExchangeEngine] Flujo B iniciado: ${transactionId} (${amountBRL} BRL → ARS, MP Payment: ${payment.paymentId})`);
 
             return {
-                transactionId: tx.transaction_id,
-                status: tx.status,
+                transactionId: tx.transaction_id || transactionId,
+                type: 'BRL_TO_ARS',
+                status: 'PENDING_PAYMENT',
+                amountSource: amountBRL,
+                currencySource: 'BRL',
+                amountTarget: quote.amountTarget,
+                currencyTarget: 'ARS',
                 pixPayment: {
                     paymentId: payment.paymentId,
                     qrCode: payment.qrCode,           // Copia e Cola string
