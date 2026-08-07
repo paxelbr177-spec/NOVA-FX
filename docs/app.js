@@ -28,6 +28,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function loadClientProfile() {
   const saved = localStorage.getItem('novaFxClient');
+  const logoutBtnNav = document.getElementById('btn-logout-user');
+  const logoutBtnModal = document.getElementById('modal-btn-logout');
+
   if (saved) {
     try {
       const user = JSON.parse(saved);
@@ -38,8 +41,33 @@ function loadClientProfile() {
       if (document.getElementById('client-phone')) document.getElementById('client-phone').value = user.phone || '';
       if (document.getElementById('client-email-input')) document.getElementById('client-email-input').value = user.email || '';
       if (document.getElementById('payer-email')) document.getElementById('payer-email').value = user.email || '';
+
+      if (logoutBtnNav) logoutBtnNav.classList.remove('hidden');
+      if (logoutBtnModal) logoutBtnModal.classList.remove('hidden');
+      return;
     } catch (e) {}
   }
+
+  state.user = null;
+  const labelEl = document.getElementById('user-account-label');
+  if (labelEl) labelEl.innerText = 'Ingresar / Registro 👤';
+  if (logoutBtnNav) logoutBtnNav.classList.add('hidden');
+  if (logoutBtnModal) logoutBtnModal.classList.add('hidden');
+}
+
+function logoutClientProfile() {
+  localStorage.removeItem('novaFxClient');
+  state.user = null;
+  if (document.getElementById('login-name')) document.getElementById('login-name').value = '';
+  if (document.getElementById('login-phone')) document.getElementById('login-phone').value = '';
+  if (document.getElementById('login-email')) document.getElementById('login-email').value = '';
+  if (document.getElementById('client-name')) document.getElementById('client-name').value = '';
+  if (document.getElementById('client-phone')) document.getElementById('client-phone').value = '';
+  if (document.getElementById('client-email-input')) document.getElementById('client-email-input').value = '';
+  if (document.getElementById('payer-email')) document.getElementById('payer-email').value = '';
+
+  loadClientProfile();
+  closeClientLoginModal();
 }
 
 function openClientLoginModal() {
