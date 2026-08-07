@@ -280,10 +280,12 @@ function openTransactionModal(txData) {
     const cbuSection = document.getElementById('modal-ars-cbu-section');
     if (cbuSection) cbuSection.classList.add('hidden');
   } else {
-    sectionPix.classList.remove('hidden');
-    sectionArs.classList.add('hidden');
-    
-    const qrCodeText = txData.pixPayment?.qrCode || '00020101021226870014br.gov.bcb.pix0136mock...';
+    if (!txData.pixPayment || !txData.pixPayment.qrCode) {
+      alert('Error: Mercado Pago Brasil no devolvió un código PIX válido.');
+      return;
+    }
+
+    const qrCodeText = txData.pixPayment.qrCode;
     document.getElementById('pix-code-text').value = qrCodeText;
 
     // Generar código QR visual en canvas

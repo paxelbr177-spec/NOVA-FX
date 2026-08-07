@@ -93,23 +93,17 @@ class MercadoPagoArService {
     const payload = {
       items: [
         {
-          title: description || `Cambio FX ${externalReference}`,
+          title: `Cambio FX ARS -> BRL (${externalReference.substring(0, 15)})`,
           quantity: 1,
           unit_price: Number(amount.toFixed(2)),
           currency_id: 'ARS'
         }
       ],
       external_reference: externalReference,
-      notification_url: `${process.env.RENDER_EXTERNAL_URL || 'https://nova-fx.onrender.com'}/api/v1/webhooks/mercadopago-ar`,
-      back_urls: {
-        success: `${process.env.FRONTEND_URL || 'https://paxelbr177-spec.github.io/NOVA-FX'}?tx=${externalReference}&status=success`,
-        failure: `${process.env.FRONTEND_URL || 'https://paxelbr177-spec.github.io/NOVA-FX'}?tx=${externalReference}&status=failure`,
-        pending: `${process.env.FRONTEND_URL || 'https://paxelbr177-spec.github.io/NOVA-FX'}?tx=${externalReference}&status=pending`
-      },
-      auto_return: 'approved'
+      notification_url: 'https://nova-fx.onrender.com/api/v1/webhooks/mercadopago-ar'
     };
 
-    if (payerEmail) {
+    if (payerEmail && payerEmail.includes('@')) {
       payload.payer = { email: payerEmail };
     }
 

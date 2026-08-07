@@ -20,23 +20,25 @@ class MercadoPagoService {
      * @returns {Promise<Object>} Datos de respuesta.
      */
     async #makeRequest(method, endpoint, data = null) {
+        const token = process.env.MP_BR_ACCESS_TOKEN || this.accessToken;
         const url = `${this.baseUrl}${endpoint}`;
-        const config = {
+        const reqConfig = {
             method,
             url,
             headers: {
-                'Authorization': `Bearer ${this.accessToken}`,
+                'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
             },
             data
         };
 
         try {
-            const response = await axios(config);
+            const response = await axios(reqConfig);
             return response.data;
         } catch (error) {
-            console.error(`[MercadoPagoService] Error en petición a ${endpoint}:`, error.response?.data || error.message);
-            throw error;
+            const errorData = error.response?.data || error.message;
+            console.error(`[MercadoPagoService] Error en petición a ${endpoint}:`, JSON.stringify(errorData));
+            throw new Error(`Error en Mercado Pago BR API (${endpoint}): ${JSON.stringify(errorData)}`);
         }
     }
 
