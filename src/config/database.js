@@ -11,6 +11,7 @@ const getLogger = async () => {
     return _logger;
 };
 
+const { Pool } = pg;
 const isCloudDb = config.databaseUrl && (config.databaseUrl.includes('supabase') || config.databaseUrl.includes('pooler') || config.nodeEnv === 'production');
 
 /**
