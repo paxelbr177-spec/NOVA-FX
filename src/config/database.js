@@ -11,13 +11,14 @@ const getLogger = async () => {
     return _logger;
 };
 
-const { Pool } = pg;
+const isCloudDb = config.databaseUrl && (config.databaseUrl.includes('supabase') || config.databaseUrl.includes('pooler') || config.nodeEnv === 'production');
 
 /**
  * Pool de conexiones a PostgreSQL.
  */
 export const pool = new Pool({
     connectionString: config.databaseUrl,
+    ssl: isCloudDb ? { rejectUnauthorized: false } : false
 });
 
 // Manejo de errores en clientes inactivos del pool
@@ -78,12 +79,7 @@ export const initDatabase = async () => {
         logger.info('[Database] Base de datos inicializada correctamente (tabla transactions e índices).');
     } catch (error) {
         const logger = await getLogger();
-        if (config.nodeEnv === 'development') {
-            logger.warn(`[Database] ⚠️ PostgreSQL no disponible (${error.message}). Modo simulación activo para desarrollo UI.`);
-        } else {
-            logger.error(`[Database] Error inicializando la base de datos: ${error.message}`);
-            throw error;
-        }
+        logger.error(`[Database] ⚠️ Alerta de conexión a PostgreSQL (${error.message}). El servidor continúa ejecutándose.`);
     }
 };
 
