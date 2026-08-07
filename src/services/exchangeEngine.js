@@ -260,7 +260,6 @@ class ExchangeEngine {
             }
 
             // Calcular USDT recibidos y BRL objetivo con margen
-            const amountUsdt = parseFloat(binanceOrder.executedQty || binanceOrder.origQty);
             const rateSnapshot = typeof tx.fx_rate_snapshot === 'string' ? JSON.parse(tx.fx_rate_snapshot) : tx.fx_rate_snapshot;
             const amountTargetGross = amountUsdt * rateSnapshot.bidUsdtBrl;
             const margin = amountTargetGross * parseFloat(tx.margin_applied);
