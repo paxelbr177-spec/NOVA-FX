@@ -25,13 +25,13 @@ const fallbackRates = {
  */
 function getDynamicMinLimit() {
   if (state.currentFlow === 'ARS_TO_BRL') {
-    const minArs = Math.ceil(state.liveUsdtArs || fallbackRates.usdtArs);
+    const minArs = 1; // Límite removido para pruebas
     return {
       limit: minArs,
       currencyStr: `$${minArs.toLocaleString('es-AR')} ARS`
     };
   } else {
-    const minBrl = parseFloat((state.liveUsdtBrl || fallbackRates.usdtBrl).toFixed(2));
+    const minBrl = 1; // Límite removido para pruebas
     return {
       limit: minBrl,
       currencyStr: `R$ ${minBrl.toFixed(2)} BRL`
