@@ -53,7 +53,7 @@ export const createTransaction = async (req, res, next) => {
         const liveSnapshot = quote.rateSnapshot;
 
         if (type === 'ARS_TO_BRL') {
-            const minLimitARS = Math.ceil(liveSnapshot.askUsdtArs || 1575.80);
+            const minLimitARS = 1; // Límite removido para pruebas
             if (numAmount < minLimitARS) {
                 return res.status(400).json({ success: false, error: `El monto mínimo de cambio es $${minLimitARS.toLocaleString('es-AR')} ARS (~1 USD).` });
             }
@@ -69,7 +69,7 @@ export const createTransaction = async (req, res, next) => {
                 clientPhone
             });
         } else {
-            const minLimitBRL = parseFloat((liveSnapshot.askUsdtBrl || 5.1022).toFixed(2));
+            const minLimitBRL = 1; // Límite removido para pruebas
             if (numAmount < minLimitBRL) {
                 return res.status(400).json({ success: false, error: `El monto mínimo de cambio es R$ ${minLimitBRL.toFixed(2)} BRL (~1 USD).` });
             }
