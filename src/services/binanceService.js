@@ -37,23 +37,31 @@ class BinanceService {
    * @returns {Promise<{ symbol: string, price: number, timestamp: number }>}
    */
   async getTickerPrice(symbol) {
-    try {
-      const cleanSymbol = symbol.toUpperCase().replace('/', '');
-      const response = await axios.get(`${this.baseUrl}/api/v3/ticker/price`, {
-        params: { symbol: cleanSymbol },
-        timeout: 5000
-      });
+    const cleanSymbol = symbol.toUpperCase().replace('/', '');
+    const endpoints = [
+      `${this.baseUrl}/api/v3/ticker/price`,
+      'https://api1.binance.com/api/v3/ticker/price',
+      'https://api3.binance.com/api/v3/ticker/price'
+    ];
+    const headers = this.apiKey ? { 'X-MBX-APIKEY': this.apiKey } : {};
 
-      return {
-        symbol: response.data.symbol,
-        price: parseFloat(response.data.price),
-        timestamp: Date.now()
-      };
-    } catch (error) {
-      const errorData = error.response?.data || error.message;
-      console.error(`[BinanceService] Error al obtener precio ticker para ${symbol}:`, errorData);
-      throw new Error(`Error en Binance API (ticker/price): ${JSON.stringify(errorData)}`);
+    for (const url of endpoints) {
+      try {
+        const response = await axios.get(url, {
+          params: { symbol: cleanSymbol },
+          headers,
+          timeout: 4000
+        });
+        return {
+          symbol: response.data.symbol,
+          price: parseFloat(response.data.price),
+          timestamp: Date.now()
+        };
+      } catch (e) {
+        // reintentar con el siguiente endpoint
+      }
     }
+    throw new Error(`Error en Binance API (ticker/price): No se pudo conectar a los endpoints de Binance para ${symbol}`);
   }
 
   /**
@@ -62,25 +70,34 @@ class BinanceService {
    * @returns {Promise<{ symbol: string, bidPrice: number, bidQty: number, askPrice: number, askQty: number }>}
    */
   async getBestOrderBook(symbol) {
-    try {
-      const cleanSymbol = symbol.toUpperCase().replace('/', '');
-      const response = await axios.get(`${this.baseUrl}/api/v3/ticker/bookTicker`, {
-        params: { symbol: cleanSymbol },
-        timeout: 5000
-      });
+    const cleanSymbol = symbol.toUpperCase().replace('/', '');
+    const endpoints = [
+      `${this.baseUrl}/api/v3/ticker/bookTicker`,
+      'https://api1.binance.com/api/v3/ticker/bookTicker',
+      'https://api3.binance.com/api/v3/ticker/bookTicker'
+    ];
+    const headers = this.apiKey ? { 'X-MBX-APIKEY': this.apiKey } : {};
 
-      return {
-        symbol: response.data.symbol,
-        bidPrice: parseFloat(response.data.bidPrice), // Mejor comprador (Precio al que venderías)
-        bidQty: parseFloat(response.data.bidQty),
-        askPrice: parseFloat(response.data.askPrice), // Mejor vendedor (Precio al que comprarías)
-        askQty: parseFloat(response.data.askQty)
-      };
-    } catch (error) {
-      const errorData = error.response?.data || error.message;
-      console.error(`[BinanceService] Error al obtener bookTicker para ${symbol}:`, errorData);
-      throw new Error(`Error en Binance API (bookTicker): ${JSON.stringify(errorData)}`);
+    for (const url of endpoints) {
+      try {
+        const response = await axios.get(url, {
+          params: { symbol: cleanSymbol },
+          headers,
+          timeout: 4000
+        });
+
+        return {
+          symbol: response.data.symbol,
+          bidPrice: parseFloat(response.data.bidPrice),
+          bidQty: parseFloat(response.data.bidQty),
+          askPrice: parseFloat(response.data.askPrice),
+          askQty: parseFloat(response.data.askQty)
+        };
+      } catch (e) {
+        // reintentar con el siguiente endpoint
+      }
     }
+    throw new Error(`Error en Binance API (bookTicker): No se pudo conectar a los endpoints de Binance para ${symbol}`);
   }
 
   /**
