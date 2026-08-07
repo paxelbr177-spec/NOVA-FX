@@ -7,7 +7,8 @@ const state = {
   quote: null,
   activeTxId: null,
   activeTxData: null,
-  history: []
+  history: [],
+  user: null
 };
 
 // Cotizaciones de respaldo en caso de que el backend esté desconectado
@@ -19,10 +20,59 @@ const fallbackRates = {
 
 // Inicialización
 document.addEventListener('DOMContentLoaded', () => {
+  loadClientProfile();
   fetchLiveTickerRates();
   recalculateQuote();
   setInterval(fetchLiveTickerRates, 10000); // Actualizar cotización cada 10s
 });
+
+function loadClientProfile() {
+  const saved = localStorage.getItem('novaFxClient');
+  if (saved) {
+    try {
+      const user = JSON.parse(saved);
+      state.user = user;
+      const labelEl = document.getElementById('user-account-label');
+      if (labelEl) labelEl.innerText = `👤 ${user.name.split(' ')[0]}`;
+      if (document.getElementById('client-name')) document.getElementById('client-name').value = user.name || '';
+      if (document.getElementById('client-phone')) document.getElementById('client-phone').value = user.phone || '';
+      if (document.getElementById('client-email-input')) document.getElementById('client-email-input').value = user.email || '';
+      if (document.getElementById('payer-email')) document.getElementById('payer-email').value = user.email || '';
+    } catch (e) {}
+  }
+}
+
+function openClientLoginModal() {
+  if (state.user) {
+    if (document.getElementById('login-name')) document.getElementById('login-name').value = state.user.name || '';
+    if (document.getElementById('login-phone')) document.getElementById('login-phone').value = state.user.phone || '';
+    if (document.getElementById('login-email')) document.getElementById('login-email').value = state.user.email || '';
+  }
+  const modal = document.getElementById('modal-client-login');
+  if (modal) modal.classList.remove('hidden');
+}
+
+function closeClientLoginModal() {
+  const modal = document.getElementById('modal-client-login');
+  if (modal) modal.classList.add('hidden');
+}
+
+function saveClientProfile() {
+  const name = document.getElementById('login-name')?.value.trim();
+  const phone = document.getElementById('login-phone')?.value.trim();
+  const email = document.getElementById('login-email')?.value.trim();
+
+  if (!name || !phone || !email) {
+    alert('Por favor complete todos los campos (Nombre, WhatsApp y Email).');
+    return;
+  }
+
+  const user = { name, phone, email };
+  state.user = user;
+  localStorage.setItem('novaFxClient', JSON.stringify(user));
+  loadClientProfile();
+  closeClientLoginModal();
+}
 
 /**
  * Consulta las cotizaciones en tiempo real desde el backend

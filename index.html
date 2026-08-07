@@ -38,13 +38,12 @@
         </div>
       </div>
 
-      <!-- Live System Badges -->
+      <!-- Live System Badges & Account -->
       <div class="status-pills">
-        <div class="status-pill status-active">
-          <span class="dot pulse"></span>
-          <i data-lucide="zap" class="pill-icon"></i>
-          <span>Binance Spot API: <strong>Conectado</strong></span>
-        </div>
+        <button id="btn-user-account" onclick="openClientLoginModal()" class="status-pill" style="cursor:pointer;color:var(--text-main);background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);">
+          <i data-lucide="user" class="pill-icon" style="color:var(--color-emerald)"></i>
+          <span id="user-account-label">Ingresar / Registro 👤</span>
+        </button>
         <a href="admin.html" class="status-pill" style="text-decoration:none;color:var(--text-main);background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);">
           <i data-lucide="lock" class="pill-icon" style="color:var(--color-primary)"></i>
           <span>Panel Admin 🔒</span>
@@ -381,6 +380,35 @@
 
       </div>
 
+    </div>
+  </div>
+
+  <!-- Client Login / Registration Modal -->
+  <div id="modal-client-login" class="modal-overlay hidden">
+    <div class="modal-card glass-modal" style="max-width: 440px;">
+      <button class="btn-close" onclick="closeClientLoginModal()">&times;</button>
+      <div class="modal-header">
+        <div style="font-size:2.2rem; margin-bottom:8px;">👤</div>
+        <h2>Identificación de Cliente</h2>
+        <p style="color:var(--text-muted); font-size:0.9rem;">Ingresa tus datos para operar y recibir actualizaciones de tu orden por WhatsApp.</p>
+      </div>
+      <div class="modal-body" style="padding-top:16px;">
+        <div class="form-group" style="margin-bottom:14px;">
+          <label for="login-name">Nombre y Apellido *</label>
+          <input type="text" id="login-name" class="glass-input-field" placeholder="Ej: Axel Gómez">
+        </div>
+        <div class="form-group" style="margin-bottom:14px;">
+          <label for="login-phone">Número de WhatsApp (con código de país) *</label>
+          <input type="text" id="login-phone" class="glass-input-field" placeholder="Ej: +5491112345678 o +5511999999999">
+        </div>
+        <div class="form-group" style="margin-bottom:20px;">
+          <label for="login-email">Correo Electrónico *</label>
+          <input type="email" id="login-email" class="glass-input-field" placeholder="ejemplo@email.com">
+        </div>
+        <button class="btn-primary-glow" style="width:100%; justify-content:center;" onclick="saveClientProfile()">
+          <i data-lucide="check"></i> Guardar Mis Datos y Continuar
+        </button>
+      </div>
     </div>
   </div>
 
