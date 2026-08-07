@@ -106,7 +106,12 @@ class MercadoPagoArService {
         }
       ],
       external_reference: externalReference,
-      notification_url: 'https://nova-fx.onrender.com/api/v1/webhooks/mercadopago-ar'
+      notification_url: 'https://nova-fx.onrender.com/api/v1/webhooks/mercadopago-ar',
+      payment_methods: {
+        excluded_payment_methods: [],
+        excluded_payment_types: [],
+        installments: 1
+      }
     };
 
     if (payerEmail && payerEmail.includes('@')) {
