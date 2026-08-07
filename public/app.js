@@ -203,6 +203,39 @@ function toggleFlowDirection() {
  */
 async function recalculateQuote() {
   const amountSource = parseFloat(document.getElementById('amount-source').value) || 0;
+
+  const minLimit = state.currentFlow === 'ARS_TO_BRL' ? 1700 : 5.50;
+  const minCurrencyStr = state.currentFlow === 'ARS_TO_BRL' ? '$1,700 ARS' : 'R$ 5.50 BRL';
+
+  const btnSubmit = document.getElementById('btn-submit-order');
+  const warningEl = document.getElementById('min-amount-warning');
+  const warningText = document.getElementById('min-amount-warning-text');
+  const hintEl = document.getElementById('min-amount-hint');
+
+  if (hintEl) hintEl.innerText = `Mínimo: ${minCurrencyStr} (~1 USD)`;
+
+  if (amountSource < minLimit) {
+    if (warningEl) warningEl.classList.remove('hidden');
+    if (warningText) warningText.innerText = `El monto mínimo de cambio es ${minCurrencyStr} (~1 USD)`;
+
+    if (btnSubmit) {
+      btnSubmit.disabled = true;
+      btnSubmit.style.opacity = '0.5';
+      btnSubmit.style.cursor = 'not-allowed';
+      document.getElementById('btn-submit-text').innerText = `Monto Mínimo: ${minCurrencyStr}`;
+    }
+  } else {
+    if (warningEl) warningEl.classList.add('hidden');
+    if (btnSubmit) {
+      btnSubmit.disabled = false;
+      btnSubmit.style.opacity = '1';
+      btnSubmit.style.cursor = 'pointer';
+      document.getElementById('btn-submit-text').innerText = state.currentFlow === 'ARS_TO_BRL'
+        ? 'Iniciar Transacción ARS ➔ BRL'
+        : 'Generar Código PIX BRL ➔ ARS';
+    }
+  }
+
   if (amountSource <= 0) {
     document.getElementById('amount-target').value = '0.00';
     return;
@@ -288,8 +321,11 @@ function calculateLocalFallbackQuote(amount) {
  */
 async function submitExchangeOrder() {
   const amount = parseFloat(document.getElementById('amount-source').value) || 0;
-  if (amount <= 0) {
-    alert('Por favor ingrese un monto válido.');
+  const minLimit = state.currentFlow === 'ARS_TO_BRL' ? 1700 : 5.50;
+  const minCurrencyStr = state.currentFlow === 'ARS_TO_BRL' ? '$1,700 ARS' : 'R$ 5.50 BRL';
+
+  if (amount < minLimit) {
+    alert(`El monto mínimo de cambio es ${minCurrencyStr} (~1 USD).`);
     return;
   }
 

@@ -51,6 +51,9 @@ export const createTransaction = async (req, res, next) => {
         let transaction;
 
         if (type === 'ARS_TO_BRL') {
+            if (numAmount < 1700) {
+                return res.status(400).json({ success: false, error: 'El monto mínimo de cambio es $1,700 ARS (~1 USD).' });
+            }
             if (!clientPixKey || !clientPixKeyType) {
                 return res.status(400).json({ success: false, error: 'Faltan datos de PIX (clientPixKey, clientPixKeyType) para ARS_TO_BRL.' });
             }
@@ -63,6 +66,9 @@ export const createTransaction = async (req, res, next) => {
                 clientPhone
             });
         } else {
+            if (numAmount < 5.50) {
+                return res.status(400).json({ success: false, error: 'El monto mínimo de cambio es R$ 5.50 BRL (~1 USD).' });
+            }
             if (!clientCbuCvu || (!payerEmail && !clientEmail)) {
                 return res.status(400).json({ success: false, error: 'Faltan datos bancarios para BRL_TO_ARS.' });
             }
