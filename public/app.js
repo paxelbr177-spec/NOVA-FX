@@ -1,7 +1,5 @@
 // Configuración de la URL del Backend (Utilizado cuando el Frontend se aloja en GitHub Pages / Vercel)
-const API_BASE_URL = window.location.origin.includes('github.io') 
-  ? (window.API_BASE_URL || 'https://tu-backend-fx.onrender.com') 
-  : '';
+const API_BASE_URL = window.API_BASE_URL || 'https://nova-fx.onrender.com';
 
 // Estado de la aplicación frontend
 const state = {
@@ -270,9 +268,8 @@ function simulateLocalTransaction(payload) {
     amountTarget: state.quote ? state.quote.amountTarget : 472.50,
     currencyTarget: payload.type === 'ARS_TO_BRL' ? 'BRL' : 'ARS',
     status: 'PENDING_PAYMENT',
-    depositInstructions: {
-      cbu: '0000003100000000000000',
-      alias: 'empresa.ars.fx',
+    arsPayment: {
+      checkoutUrl: 'https://www.mercadopago.com.ar/checkout/v1/redirect?pref_id=demo',
       amount: payload.amount
     },
     pixPayment: {
@@ -304,6 +301,16 @@ function openTransactionModal(txData) {
     sectionArs.classList.remove('hidden');
     sectionPix.classList.add('hidden');
     document.getElementById('modal-ars-amount').innerText = `$${txData.amountSource.toLocaleString('es-AR')} ARS`;
+
+    // Show MP Argentina checkout link
+    const checkoutUrl = txData.arsPayment?.checkoutUrl || txData.arsPayment?.sandboxUrl || '#';
+    const linkEl = document.getElementById('modal-ars-checkout-link');
+    if (linkEl) {
+      linkEl.href = checkoutUrl;
+      linkEl.innerText = 'Pagar con Mercado Pago Argentina';
+    }
+    const cbuSection = document.getElementById('modal-ars-cbu-section');
+    if (cbuSection) cbuSection.classList.add('hidden');
   } else {
     sectionPix.classList.remove('hidden');
     sectionArs.classList.add('hidden');
