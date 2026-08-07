@@ -104,14 +104,20 @@ class Transaction {
      * @returns {Promise<Object|null>} La transacción o null si no existe.
      */
     static async findByMpPaymentId(mpPaymentId) {
-        const sql = `SELECT * FROM transactions WHERE mp_payment_id = $1;`;
         try {
+            const sql = `SELECT * FROM transactions WHERE mp_payment_id = $1;`;
             const result = await query(sql, [mpPaymentId]);
-            return result.rows[0] || null;
+            if (result && result.rows && result.rows[0]) return result.rows[0];
         } catch (error) {
-            console.error('[TransactionModel] Error al buscar por mpPaymentId:', error);
-            throw error;
+            console.warn('[TransactionModel] Buscando por mpPaymentId en memoria:', error.message);
         }
+
+        for (const tx of memoryStore.values()) {
+            if (String(tx.mp_payment_id) === String(mpPaymentId)) {
+                return tx;
+            }
+        }
+        return null;
     }
 
     /**

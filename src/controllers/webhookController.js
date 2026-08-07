@@ -11,23 +11,24 @@ export const handleMercadoPagoWebhook = async (req, res, next) => {
     res.status(200).send('OK');
 
     try {
-        const { action, data, type } = req.body;
+        const { action, data, type } = req.body || {};
+        const paymentId = data?.id || req.query['data.id'] || req.query.id || req.body?.id;
         
-        if (action === 'payment.updated' || type === 'payment') {
-            const paymentId = data?.id;
-            if (!paymentId) return;
+        logger.info(`[WebhookController] Webhook MP Brasil recibido (Payment ID: ${paymentId}, Action: ${action || type})`);
 
-            const paymentData = await mercadoPagoService.getPaymentStatus(String(paymentId));
-            
-            if (paymentData.status === 'approved') {
-                const existingTx = await Transaction.findByMpPaymentId(String(paymentId));
-                if (existingTx && existingTx.status !== 'PENDING_PAYMENT') {
-                    logger.info(`[WebhookController] Pago MP Brasil ${paymentId} ya estaba procesado (status: ${existingTx.status}).`);
-                    return;
-                }
+        if (!paymentId) return;
 
-                await exchangeEngine.processBrlPayment(String(paymentId));
+        const paymentData = await mercadoPagoService.getPaymentStatus(String(paymentId));
+        logger.info(`[WebhookController] Estado de pago MP Brasil ${paymentId}: ${paymentData?.status}`);
+        
+        if (paymentData && paymentData.status === 'approved') {
+            const existingTx = await Transaction.findByMpPaymentId(String(paymentId));
+            if (existingTx && existingTx.status !== 'PENDING_PAYMENT') {
+                logger.info(`[WebhookController] Pago MP Brasil ${paymentId} ya procesado (status: ${existingTx.status}).`);
+                return;
             }
+
+            await exchangeEngine.processBrlPayment(String(paymentId));
         }
     } catch (error) {
         logger.error(`[WebhookController] Error procesando webhook de MP Brasil: ${error.message}`);

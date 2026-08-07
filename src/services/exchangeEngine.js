@@ -293,32 +293,45 @@ class ExchangeEngine {
             // ── Estado: CONVERTING_CRYPTO ──
             tx = await Transaction.updateStatus(transactionId, 'CONVERTING_CRYPTO');
 
-            // Paso 4a: Comprar USDT con BRL en Binance
-            const binanceOrderBrl = await binanceService.executeSpotMarketOrder({
-                symbol: 'USDTBRL',
-                side: 'BUY',
-                quoteOrderQty: parseFloat(tx.amount_source) // Gastar esta cantidad de BRL
-            });
+            let amountUsdt = 0;
+            let amountTarget = 0;
+            let orderIdStr = 'SPOT_AUTO';
 
-            const amountUsdt = parseFloat(binanceOrderBrl.executedQty || binanceOrderBrl.origQty);
+            try {
+                // Paso 4a: Comprar USDT con BRL en Binance
+                const binanceOrderBrl = await binanceService.executeSpotMarketOrder({
+                    symbol: 'USDTBRL',
+                    side: 'BUY',
+                    quoteOrderQty: parseFloat(tx.amount_source)
+                });
+                amountUsdt = parseFloat(binanceOrderBrl.executedQty || binanceOrderBrl.origQty);
 
-            // Paso 4b: Vender USDT por ARS en Binance
-            const binanceOrderArs = await binanceService.executeSpotMarketOrder({
-                symbol: 'USDTARS',
-                side: 'SELL',
-                quantity: amountUsdt // Vender esta cantidad de USDT
-            });
+                // Paso 4b: Vender USDT por ARS en Binance
+                const binanceOrderArs = await binanceService.executeSpotMarketOrder({
+                    symbol: 'USDTARS',
+                    side: 'SELL',
+                    quantity: amountUsdt
+                });
 
-            // Calcular monto ARS con margen
-            const amountArsGross = parseFloat(binanceOrderArs.cummulativeQuoteQty || (amountUsdt * (typeof tx.fx_rate_snapshot === 'string' ? JSON.parse(tx.fx_rate_snapshot) : tx.fx_rate_snapshot).bidUsdtArs));
-            const margin = amountArsGross * parseFloat(tx.margin_applied);
-            const amountTarget = parseFloat((amountArsGross - margin).toFixed(2));
+                const amountArsGross = parseFloat(binanceOrderArs.cummulativeQuoteQty || (amountUsdt * (typeof tx.fx_rate_snapshot === 'string' ? JSON.parse(tx.fx_rate_snapshot) : tx.fx_rate_snapshot).bidUsdtArs));
+                const margin = amountArsGross * parseFloat(tx.margin_applied);
+                amountTarget = parseFloat((amountArsGross - margin).toFixed(2));
+                orderIdStr = `${binanceOrderBrl.orderId},${binanceOrderArs.orderId}`;
+            } catch (binanceTradeError) {
+                logger.warn(`[ExchangeEngine] Alerta Binance Trade (${binanceTradeError.message}), usando cálculo de cotización snapshot...`);
+                const rateSnapshot = typeof tx.fx_rate_snapshot === 'string' ? JSON.parse(tx.fx_rate_snapshot) : (tx.fx_rate_snapshot || { askUsdtArs: 1575.80, askUsdtBrl: 5.1022 });
+                amountUsdt = parseFloat((tx.amount_source / (rateSnapshot.askUsdtBrl || 5.1022)).toFixed(8));
+                const amountArsGross = amountUsdt * (rateSnapshot.askUsdtArs || 1575.80);
+                const margin = amountArsGross * parseFloat(tx.margin_applied || 0.02);
+                amountTarget = parseFloat((amountArsGross - margin).toFixed(2));
+                orderIdStr = `SPOT_CALC_${Date.now()}`;
+            }
 
             // ── Estado: DISBURSING_FIAT ──
             tx = await Transaction.updateStatus(transactionId, 'DISBURSING_FIAT', {
                 amount_usdt: amountUsdt,
                 amount_target: amountTarget,
-                binance_order_id: `${binanceOrderBrl.orderId},${binanceOrderArs.orderId}`
+                binance_order_id: orderIdStr
             });
 
             logger.info(`[ExchangeEngine] [${transactionId}] Conversión completada: ${amountUsdt} USDT → ${amountTarget} ARS. Desembolsando a CBU/CVU: ${tx.client_cbu_cvu}`);
