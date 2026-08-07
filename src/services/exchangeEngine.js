@@ -97,17 +97,28 @@ class ExchangeEngine {
                 marginApplied: quote.marginApplied
             });
 
-            logger.info(`[ExchangeEngine] Flujo A iniciado: ${transactionId} (${amountARS} ARS → BRL)`);
+            // Generar preferencia de pago en ARS via Mercado Pago Argentina
+            const arsPayment = await mercadoPagoArService.createArsPayment({
+                amount: amountARS,
+                description: `Cambio FX ${transactionId} - ${amountARS} ARS → BRL`,
+                externalReference: transactionId
+            });
+
+            // Actualizar transacción con datos del pago ARS
+            await Transaction.updateStatus(transactionId, 'PENDING_PAYMENT', {
+                mp_ar_preference_id: arsPayment.preferenceId
+            });
+
+            logger.info(`[ExchangeEngine] Flujo A iniciado: ${transactionId} (${amountARS} ARS → BRL, MP AR Pref: ${arsPayment.preferenceId})`);
 
             return {
                 transactionId: tx.transaction_id,
-                status: tx.status,
-                depositInstructions: {
-                    // CBU/CVU de recaudación de la empresa (configurar en producción)
-                    cbu: '0000003100000000000000',
-                    alias: 'empresa.ars.fx',
-                    amount: amountARS,
-                    reference: transactionId
+                status: 'PENDING_PAYMENT',
+                arsPayment: {
+                    preferenceId: arsPayment.preferenceId,
+                    checkoutUrl: arsPayment.initPoint,       // URL de checkout real
+                    sandboxUrl: arsPayment.sandboxInitPoint,  // URL de checkout sandbox
+                    amount: amountARS
                 },
                 quote
             };

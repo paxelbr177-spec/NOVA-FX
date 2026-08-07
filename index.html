@@ -309,30 +309,24 @@
       <!-- Modal Body Content: QR Code / Deposit Instructions -->
       <div class="modal-body">
         
-        <!-- Deposit Instructions for ARS -> BRL -->
         <div id="modal-deposit-ars" class="modal-section hidden">
           <div class="alert-box alert-info">
             <i data-lucide="info"></i>
             <div>
-              <strong>Instrucciones de Depósito en Pesos (ARS)</strong>
-              <p>Por favor transfiere el monto exacto a la siguiente cuenta de recaudación:</p>
+              <strong>Pagar con Mercado Pago Argentina</strong>
+              <p>Haz clic en el botón para pagar el monto exacto vía Mercado Pago. Aceptamos transferencia, QR, tarjeta y más.</p>
             </div>
           </div>
           <div class="copy-box">
             <div class="copy-field">
-              <span class="label">Alias CBU/CVU:</span>
-              <strong id="modal-ars-alias">empresa.ars.fx</strong>
-              <button class="btn-copy" onclick="copyToClipboard('empresa.ars.fx')"><i data-lucide="copy"></i> Copiar</button>
-            </div>
-            <div class="copy-field">
-              <span class="label">CBU Numérico:</span>
-              <strong id="modal-ars-cbu">0000003100000000000000</strong>
-              <button class="btn-copy" onclick="copyToClipboard('0000003100000000000000')"><i data-lucide="copy"></i> Copiar</button>
-            </div>
-            <div class="copy-field">
-              <span class="label">Monto a Transferir:</span>
+              <span class="label">Monto a Pagar:</span>
               <strong id="modal-ars-amount" class="text-emerald">$100,000 ARS</strong>
             </div>
+            <a id="modal-ars-checkout-link" href="#" target="_blank" rel="noopener noreferrer" class="btn-primary-glow" style="display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;margin-top:16px;">
+              <i data-lucide="external-link"></i>
+              Pagar con Mercado Pago Argentina
+            </a>
+            <div id="modal-ars-cbu-section" class="hidden"></div>
           </div>
         </div>
 
@@ -352,13 +346,7 @@
           </div>
         </div>
 
-        <!-- Dev Simulator Button -->
-        <div class="dev-simulation-box">
-          <span class="dev-badge">🛠️ Entorno de Desarrollo</span>
-          <button class="btn-secondary" onclick="simulatePaymentWebhook()">
-            <i data-lucide="play-circle"></i> Simular Webhook de Depósito Recepcionado
-          </button>
-        </div>
+        <!-- Production mode: simulation disabled -->
 
       </div>
 

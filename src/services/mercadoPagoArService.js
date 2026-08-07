@@ -80,22 +80,50 @@ class MercadoPagoArService {
   }
 
   /**
-   * Genera un cobro o checkout en ARS (Mercado Pago Argentina)
+   * Genera una preferencia de pago en ARS (Mercado Pago Argentina)
+   * Crea un checkout link donde el cliente puede pagar via transferencia, QR, o tarjeta.
    * @param {Object} params
    * @param {number} params.amount - Monto en ARS a cobrar
    * @param {string} params.description - Descripción del concepto
    * @param {string} params.externalReference - ID de transacción interno
-   * @returns {Promise<Object>} Objeto con detalles del cobro
+   * @param {string} params.payerEmail - Email del pagador (opcional)
+   * @returns {Promise<Object>} Objeto con init_point (URL checkout), id de preferencia
    */
-  async createArsPayment({ amount, description, externalReference }) {
+  async createArsPayment({ amount, description, externalReference, payerEmail }) {
     const payload = {
-      transaction_amount: Number(amount.toFixed(2)),
-      description: description,
-      payment_method_id: 'pix', // O transferencia / QR según configuración MP AR
-      external_reference: externalReference
+      items: [
+        {
+          title: description || `Cambio FX ${externalReference}`,
+          quantity: 1,
+          unit_price: Number(amount.toFixed(2)),
+          currency_id: 'ARS'
+        }
+      ],
+      external_reference: externalReference,
+      notification_url: `${process.env.RENDER_EXTERNAL_URL || 'https://nova-fx.onrender.com'}/api/v1/webhooks/mercadopago-ar`,
+      back_urls: {
+        success: `${process.env.FRONTEND_URL || 'https://paxelbr177-spec.github.io/NOVA-FX'}?tx=${externalReference}&status=success`,
+        failure: `${process.env.FRONTEND_URL || 'https://paxelbr177-spec.github.io/NOVA-FX'}?tx=${externalReference}&status=failure`,
+        pending: `${process.env.FRONTEND_URL || 'https://paxelbr177-spec.github.io/NOVA-FX'}?tx=${externalReference}&status=pending`
+      },
+      auto_return: 'approved'
     };
 
-    return await this.#makeRequest('POST', '/v1/payments', payload);
+    if (payerEmail) {
+      payload.payer = { email: payerEmail };
+    }
+
+    const result = await this.#makeRequest('POST', '/checkout/preferences', payload);
+    
+    logger.info(`[MercadoPagoArService] Preferencia de pago ARS creada: ${result.id} (${amount} ARS)`);
+    
+    return {
+      preferenceId: result.id,
+      initPoint: result.init_point,           // URL del checkout de producción
+      sandboxInitPoint: result.sandbox_init_point, // URL del checkout sandbox
+      amount: amount,
+      externalReference
+    };
   }
 
   /**
