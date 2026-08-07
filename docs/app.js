@@ -237,17 +237,15 @@ async function submitExchangeOrder() {
       body: JSON.stringify(payload)
     });
 
-    if (res.ok) {
-      const result = await res.json();
-      if (result.success && result.data) {
-        state.activeTxData = result.data;
-        state.activeTxId = result.data.transactionId;
-        addHistoryRecord(result.data);
-        openTransactionModal(result.data);
-        return;
-      }
-      const errorData = await res.json().catch(() => ({}));
-      alert(`Error del servidor: ${errorData.error || 'No se pudo crear la transacción. Intenta de nuevo.'}`);
+    const result = await res.json().catch(() => ({}));
+
+    if (res.ok && result.success && result.data) {
+      state.activeTxData = result.data;
+      state.activeTxId = result.data.transactionId;
+      addHistoryRecord(result.data);
+      openTransactionModal(result.data);
+    } else {
+      alert(`Error: ${result.error || 'No se pudo crear la transacción. Intenta de nuevo.'}`);
     }
   } catch (e) {
     console.error('[Frontend] Error conectando al backend:', e);
