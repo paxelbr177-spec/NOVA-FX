@@ -26,14 +26,20 @@ class MercadoPagoArService {
       throw new Error('[MercadoPagoArService] MP_AR_ACCESS_TOKEN no está configurada.');
     }
 
+    const headers = {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+
+    if (method.toUpperCase() === 'POST') {
+      headers['X-Idempotency-Key'] = data?.external_reference || crypto.randomUUID();
+    }
+
     try {
       const response = await axios({
         method,
         url,
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
+        headers,
         data,
         timeout: 10000
       });

@@ -22,13 +22,19 @@ class MercadoPagoService {
     async #makeRequest(method, endpoint, data = null) {
         const token = process.env.MP_BR_ACCESS_TOKEN || this.accessToken;
         const url = `${this.baseUrl}${endpoint}`;
+        const headers = {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        };
+
+        if (method.toUpperCase() === 'POST') {
+            headers['X-Idempotency-Key'] = data?.external_reference || crypto.randomUUID();
+        }
+
         const reqConfig = {
             method,
             url,
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            },
+            headers,
             data
         };
 
