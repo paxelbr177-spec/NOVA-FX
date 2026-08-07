@@ -8,7 +8,9 @@ const state = {
   activeTxId: null,
   activeTxData: null,
   history: [],
-  user: null
+  user: null,
+  liveUsdtArs: 1575.80,
+  liveUsdtBrl: 5.1021
 };
 
 // Cotizaciones de respaldo en caso de que el backend esté desconectado
@@ -17,6 +19,25 @@ const fallbackRates = {
   usdtBrl: 5.1021,
   margin: 0.02
 };
+
+/**
+ * Calcula dinámicamente el monto mínimo (~1 USD) según la cotización Binance en tiempo real
+ */
+function getDynamicMinLimit() {
+  if (state.currentFlow === 'ARS_TO_BRL') {
+    const minArs = Math.ceil(state.liveUsdtArs || fallbackRates.usdtArs);
+    return {
+      limit: minArs,
+      currencyStr: `$${minArs.toLocaleString('es-AR')} ARS`
+    };
+  } else {
+    const minBrl = parseFloat((state.liveUsdtBrl || fallbackRates.usdtBrl).toFixed(2));
+    return {
+      limit: minBrl,
+      currencyStr: `R$ ${minBrl.toFixed(2)} BRL`
+    };
+  }
+}
 
 // Inicialización
 document.addEventListener('DOMContentLoaded', () => {
@@ -136,11 +157,19 @@ async function fetchLiveTickerRates() {
  * Actualiza la marquesina de precios y ratios
  */
 function updateTickerUI(usdtArs, usdtBrl) {
-  document.getElementById('ticker-usdt-ars').innerText = `${usdtArs.toLocaleString('es-AR', { minimumFractionDigits: 2 })} ARS`;
-  document.getElementById('ticker-usdt-brl').innerText = `${usdtBrl.toFixed(4)} BRL`;
+  state.liveUsdtArs = usdtArs || fallbackRates.usdtArs;
+  state.liveUsdtBrl = usdtBrl || fallbackRates.usdtBrl;
 
-  const crossRate = usdtArs / usdtBrl;
+  document.getElementById('ticker-usdt-ars').innerText = `${state.liveUsdtArs.toLocaleString('es-AR', { minimumFractionDigits: 2 })} ARS`;
+  document.getElementById('ticker-usdt-brl').innerText = `${state.liveUsdtBrl.toFixed(4)} BRL`;
+
+  const crossRate = state.liveUsdtArs / state.liveUsdtBrl;
   document.getElementById('ticker-cross-rate').innerText = `1 BRL ≈ ${crossRate.toFixed(2)} ARS`;
+
+  // Actualizar inmediatamente las alertas y validaciones de mínimo dinámico
+  const { limit: minLimit, currencyStr: minCurrencyStr } = getDynamicMinLimit();
+  const hintEl = document.getElementById('min-amount-hint');
+  if (hintEl) hintEl.innerText = `Mínimo: ${minCurrencyStr} (~1 USD)`;
 }
 
 /**
@@ -204,8 +233,7 @@ function toggleFlowDirection() {
 async function recalculateQuote() {
   const amountSource = parseFloat(document.getElementById('amount-source').value) || 0;
 
-  const minLimit = state.currentFlow === 'ARS_TO_BRL' ? 1700 : 5.50;
-  const minCurrencyStr = state.currentFlow === 'ARS_TO_BRL' ? '$1,700 ARS' : 'R$ 5.50 BRL';
+  const { limit: minLimit, currencyStr: minCurrencyStr } = getDynamicMinLimit();
 
   const btnSubmit = document.getElementById('btn-submit-order');
   const warningEl = document.getElementById('min-amount-warning');
@@ -321,8 +349,7 @@ function calculateLocalFallbackQuote(amount) {
  */
 async function submitExchangeOrder() {
   const amount = parseFloat(document.getElementById('amount-source').value) || 0;
-  const minLimit = state.currentFlow === 'ARS_TO_BRL' ? 1700 : 5.50;
-  const minCurrencyStr = state.currentFlow === 'ARS_TO_BRL' ? '$1,700 ARS' : 'R$ 5.50 BRL';
+  const { limit: minLimit, currencyStr: minCurrencyStr } = getDynamicMinLimit();
 
   if (amount < minLimit) {
     alert(`El monto mínimo de cambio es ${minCurrencyStr} (~1 USD).`);

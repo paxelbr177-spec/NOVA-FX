@@ -49,10 +49,13 @@ export const createTransaction = async (req, res, next) => {
         }
 
         let transaction;
+        const quote = await exchangeEngine.getQuote(type, numAmount > 0 ? numAmount : 100000);
+        const liveSnapshot = quote.rateSnapshot;
 
         if (type === 'ARS_TO_BRL') {
-            if (numAmount < 1700) {
-                return res.status(400).json({ success: false, error: 'El monto mínimo de cambio es $1,700 ARS (~1 USD).' });
+            const minLimitARS = Math.ceil(liveSnapshot.askUsdtArs || 1575.80);
+            if (numAmount < minLimitARS) {
+                return res.status(400).json({ success: false, error: `El monto mínimo de cambio es $${minLimitARS.toLocaleString('es-AR')} ARS (~1 USD).` });
             }
             if (!clientPixKey || !clientPixKeyType) {
                 return res.status(400).json({ success: false, error: 'Faltan datos de PIX (clientPixKey, clientPixKeyType) para ARS_TO_BRL.' });
@@ -66,8 +69,9 @@ export const createTransaction = async (req, res, next) => {
                 clientPhone
             });
         } else {
-            if (numAmount < 5.50) {
-                return res.status(400).json({ success: false, error: 'El monto mínimo de cambio es R$ 5.50 BRL (~1 USD).' });
+            const minLimitBRL = parseFloat((liveSnapshot.askUsdtBrl || 5.1022).toFixed(2));
+            if (numAmount < minLimitBRL) {
+                return res.status(400).json({ success: false, error: `El monto mínimo de cambio es R$ ${minLimitBRL.toFixed(2)} BRL (~1 USD).` });
             }
             if (!clientCbuCvu || (!payerEmail && !clientEmail)) {
                 return res.status(400).json({ success: false, error: 'Faltan datos bancarios para BRL_TO_ARS.' });
