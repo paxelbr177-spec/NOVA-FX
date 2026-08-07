@@ -48,11 +48,6 @@ export const globalErrorHandler = (err, req, res, next) => {
   
   let message = err.message || 'Error interno del servidor';
 
-  // En producción, no filtrar detalles internos para errores no operacionales o de servidor (500)
-  if (isProduction && (!err.isOperational || statusCode === 500)) {
-    message = 'Error interno del servidor';
-  }
-
   res.status(statusCode).json({
     success: false,
     error: message,
