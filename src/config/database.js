@@ -44,8 +44,13 @@ export const query = (text, params) => {
  * @returns {Promise<void>}
  */
 export const initDatabase = async () => {
+    const logger = await getLogger();
     try {
-        const createTableText = `
+        try {
+            await pool.query('CREATE EXTENSION IF NOT EXISTS "pgcrypto";');
+        } catch (e) {}
+
+        await pool.query(`
             CREATE TABLE IF NOT EXISTS transactions (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                 transaction_id VARCHAR(64) UNIQUE NOT NULL,
@@ -66,13 +71,16 @@ export const initDatabase = async () => {
                 client_phone VARCHAR(50),
                 mp_payment_id VARCHAR(64),
                 mp_pix_qr_code TEXT,
+                mp_ar_preference_id VARCHAR(64),
                 binance_order_id VARCHAR(64),
                 binance_order_response JSONB,
                 error_details TEXT,
                 created_at TIMESTAMPTZ DEFAULT NOW(),
                 updated_at TIMESTAMPTZ DEFAULT NOW()
             );
+        `);
 
+        await pool.query(`
             CREATE TABLE IF NOT EXISTS users (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                 name VARCHAR(255) NOT NULL,
@@ -80,18 +88,14 @@ export const initDatabase = async () => {
                 phone VARCHAR(50) NOT NULL,
                 created_at TIMESTAMPTZ DEFAULT NOW()
             );
+        `);
 
-            CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-            CREATE INDEX IF NOT EXISTS idx_transactions_transaction_id ON transactions(transaction_id);
-            CREATE INDEX IF NOT EXISTS idx_transactions_status ON transactions(status);
-            CREATE INDEX IF NOT EXISTS idx_transactions_type ON transactions(type);
-        `;
-        
-        await pool.query(createTableText);
-        const logger = await getLogger();
-        logger.info('[Database] Base de datos inicializada correctamente (tabla transactions e índices).');
+        await pool.query('CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);');
+        await pool.query('CREATE INDEX IF NOT EXISTS idx_transactions_transaction_id ON transactions(transaction_id);');
+        await pool.query('CREATE INDEX IF NOT EXISTS idx_transactions_status ON transactions(status);');
+
+        logger.info('[Database] ✅ Base de datos Supabase inicializada correctamente (tablas transactions y users creadas).');
     } catch (error) {
-        const logger = await getLogger();
         logger.error(`[Database] ⚠️ Alerta de conexión a PostgreSQL (${error.message}). El servidor continúa ejecutándose.`);
     }
 };
