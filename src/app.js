@@ -50,8 +50,16 @@ const startServer = async () => {
         await initDatabase();
         
         const PORT = config.port || 3000;
-        app.listen(PORT, () => {
+        app.listen(PORT, async () => {
             logger.info(`[App] Servidor corriendo en el puerto ${PORT} en modo ${config.nodeEnv}`);
+            try {
+                const ipRes = await (await import('axios')).default.get('https://api.ipify.org?format=json', { timeout: 3000 });
+                logger.info(`=======================================================`);
+                logger.info(`🌐 TU IP PÚBLICA DE SALIDA EN RENDER ES: ${ipRes.data.ip}`);
+                logger.info(`=======================================================`);
+            } catch (e) {
+                logger.warn('[App] No se pudo determinar la IP de salida.');
+            }
         });
     } catch (error) {
         logger.error(`[App] Error al inicializar: ${error.message}`);
