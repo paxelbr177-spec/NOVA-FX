@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getQuote, createTransaction, getTransactionStatus } from '../controllers/exchangeController.js';
+import { getQuote, createTransaction, getTransactionStatus, registerUser } from '../controllers/exchangeController.js';
 
 const router = Router();
 
@@ -11,5 +11,8 @@ router.post('/transactions', createTransaction);
 
 // GET /api/v1/exchange/transactions/:transactionId -> getTransactionStatus
 router.get('/transactions/:transactionId', getTransactionStatus);
+
+// POST /api/v1/exchange/users -> registerUser
+router.post('/users', registerUser);
 
 export default router;

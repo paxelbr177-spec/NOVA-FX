@@ -151,12 +151,13 @@
     <div class="glass-panel" style="padding: 20px; margin-bottom: 24px;">
       <div style="display: flex; gap: 16px; justify-content: space-between; align-items: center; flex-wrap: wrap;">
         <div style="display: flex; gap: 8px;">
-          <button class="tab-btn active" id="filter-all" onclick="setFilter('ALL')">Todas</button>
+          <button class="tab-btn active" id="filter-all" onclick="setFilter('ALL')">Todas las Órdenes</button>
           <button class="tab-btn" id="filter-review" onclick="setFilter('REVIEW')">⚠️ Requieren Atención</button>
           <button class="tab-btn" id="filter-completed" onclick="setFilter('COMPLETED')">✅ Completadas</button>
+          <button class="tab-btn" id="filter-users" onclick="setFilter('USERS')">👥 Clientes Registrados</button>
         </div>
         <div style="display: flex; gap: 8px; align-items: center;">
-          <input type="text" id="admin-search" class="glass-input-field" placeholder="Buscar por ID, Cliente o Teléfono..." style="width: 280px;" oninput="renderAdminTable()">
+          <input type="text" id="admin-search" class="glass-input-field" placeholder="Buscar por Nombre, ID, WhatsApp..." style="width: 280px;" oninput="renderAdminTable()">
           <button class="btn-secondary" onclick="loadAdminData()"><i data-lucide="refresh-cw"></i> Refrescar</button>
         </div>
       </div>

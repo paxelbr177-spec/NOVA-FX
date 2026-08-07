@@ -6,6 +6,7 @@ let adminState = {
   pin: sessionStorage.getItem('adminPin') || '',
   stats: null,
   transactions: [],
+  users: [],
   currentFilter: 'ALL'
 };
 
@@ -40,9 +41,10 @@ async function loadAdminData() {
   try {
     const headers = { 'x-admin-pin': adminState.pin };
 
-    const [statsRes, txRes] = await Promise.all([
+    const [statsRes, txRes, usersRes] = await Promise.all([
       fetch(`${API_BASE_URL}/api/v1/admin/stats`, { headers }),
-      fetch(`${API_BASE_URL}/api/v1/admin/transactions`, { headers })
+      fetch(`${API_BASE_URL}/api/v1/admin/transactions`, { headers }),
+      fetch(`${API_BASE_URL}/api/v1/admin/users`, { headers })
     ]);
 
     if (statsRes.status === 401 || txRes.status === 401) {
@@ -63,9 +65,17 @@ async function loadAdminData() {
       const txJson = await txRes.json();
       if (txJson.success) {
         adminState.transactions = txJson.data;
-        renderAdminTable();
       }
     }
+
+    if (usersRes.ok) {
+      const usersJson = await usersRes.json();
+      if (usersJson.success) {
+        adminState.users = usersJson.data;
+      }
+    }
+
+    renderAdminTable();
   } catch (e) {
     console.error('[Admin] Error al cargar datos:', e);
   }
@@ -83,12 +93,54 @@ function setFilter(filterType) {
   document.getElementById('filter-all').classList.toggle('active', filterType === 'ALL');
   document.getElementById('filter-review').classList.toggle('active', filterType === 'REVIEW');
   document.getElementById('filter-completed').classList.toggle('active', filterType === 'COMPLETED');
+  document.getElementById('filter-users').classList.toggle('active', filterType === 'USERS');
   renderAdminTable();
 }
 
 function renderAdminTable() {
   const tbody = document.getElementById('admin-tbody');
   const search = document.getElementById('admin-search').value.toLowerCase().trim();
+
+  if (adminState.currentFilter === 'USERS') {
+    let filteredUsers = adminState.users;
+    if (search) {
+      filteredUsers = filteredUsers.filter(u =>
+        u.name.toLowerCase().includes(search) ||
+        u.email.toLowerCase().includes(search) ||
+        u.phone.toLowerCase().includes(search)
+      );
+    }
+
+    if (filteredUsers.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No se encontraron clientes registrados.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = filteredUsers.map(u => {
+      const timeStr = new Date(u.created_at).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' });
+      const cleanPhone = (u.phone || '').replace(/[^0-9]/g, '');
+      const waMessage = encodeURIComponent(`Hola ${u.name}, te contactamos de la plataforma NOVA FX.`);
+      const waUrl = cleanPhone ? `https://wa.me/${cleanPhone}?text=${waMessage}` : '#';
+
+      return `
+        <tr>
+          <td><strong>${u.name}</strong></td>
+          <td><span class="badge-type">CLIENTE</span></td>
+          <td>
+            <strong>📱 ${u.phone}</strong><br>
+            <span style="font-size:0.8rem; color:var(--text-muted);">📧 ${u.email}</span>
+          </td>
+          <td>—</td>
+          <td>—</td>
+          <td><span class="status-badge badge-completed">${timeStr}</span></td>
+          <td>
+            ${cleanPhone ? `<a href="${waUrl}" target="_blank" class="btn-wa">📱 Chatear por WA</a>` : '<span style="font-size:0.75rem;color:var(--text-muted)">Sin WA</span>'}
+          </td>
+        </tr>
+      `;
+    }).join('');
+    return;
+  }
 
   let filtered = adminState.transactions;
 

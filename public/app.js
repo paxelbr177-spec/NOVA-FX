@@ -57,7 +57,7 @@ function closeClientLoginModal() {
   if (modal) modal.classList.add('hidden');
 }
 
-function saveClientProfile() {
+async function saveClientProfile() {
   const name = document.getElementById('login-name')?.value.trim();
   const phone = document.getElementById('login-phone')?.value.trim();
   const email = document.getElementById('login-email')?.value.trim();
@@ -72,6 +72,16 @@ function saveClientProfile() {
   localStorage.setItem('novaFxClient', JSON.stringify(user));
   loadClientProfile();
   closeClientLoginModal();
+
+  try {
+    await fetch(`${API_BASE_URL}/api/v1/exchange/users`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(user)
+    });
+  } catch (e) {
+    console.warn('[Frontend] Error registrando usuario en servidor:', e);
+  }
 }
 
 /**

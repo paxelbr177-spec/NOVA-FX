@@ -1,4 +1,5 @@
 import Transaction from '../models/Transaction.js';
+import User from '../models/User.js';
 import { logger } from '../utils/logger.js';
 
 /**
@@ -106,6 +107,21 @@ export const updateAdminTransactionStatus = async (req, res, next) => {
         logger.info(`[AdminController] Transacción ${transactionId} actualizada a estado ${status}`);
 
         return res.status(200).json({ success: true, data: updated });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * Obtiene el listado completo de usuarios registrados para el Admin
+ */
+export const getAdminUsers = async (req, res, next) => {
+    try {
+        const users = await User.findAll();
+        return res.status(200).json({
+            success: true,
+            data: users
+        });
     } catch (error) {
         next(error);
     }

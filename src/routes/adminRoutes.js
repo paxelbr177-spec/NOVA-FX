@@ -1,5 +1,5 @@
 import express from 'express';
-import { verifyAdminPin, getAdminStats, getAdminTransactions, updateAdminTransactionStatus } from '../controllers/adminController.js';
+import { verifyAdminPin, getAdminStats, getAdminTransactions, updateAdminTransactionStatus, getAdminUsers } from '../controllers/adminController.js';
 
 const router = express.Router();
 
@@ -9,6 +9,7 @@ router.use(verifyAdminPin);
 // Rutas de administración
 router.get('/stats', getAdminStats);
 router.get('/transactions', getAdminTransactions);
+router.get('/users', getAdminUsers);
 router.patch('/transactions/:transactionId', updateAdminTransactionStatus);
 
 export default router;

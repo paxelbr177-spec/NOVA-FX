@@ -1,5 +1,6 @@
 import exchangeEngine from '../services/exchangeEngine.js';
 import Transaction from '../models/Transaction.js';
+import User from '../models/User.js';
 
 /**
  * @description Obtiene una cotización para un tipo de cambio y monto
@@ -75,6 +76,23 @@ export const createTransaction = async (req, res, next) => {
         }
 
         return res.status(201).json({ success: true, data: transaction });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * Registra o actualiza el perfil de un usuario cliente
+ */
+export const registerUser = async (req, res, next) => {
+    try {
+        const { name, email, phone } = req.body;
+        if (!name || !email || !phone) {
+            return res.status(400).json({ success: false, error: 'Nombre, Email y WhatsApp son obligatorios.' });
+        }
+
+        const user = await User.createOrUpdate({ name, email, phone });
+        return res.status(200).json({ success: true, data: user });
     } catch (error) {
         next(error);
     }
