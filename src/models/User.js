@@ -1,3 +1,4 @@
+import supabaseClient from '../config/supabaseClient.js';
 import { query } from '../config/database.js';
 import { logger } from '../utils/logger.js';
 
@@ -15,6 +16,17 @@ class User {
 
         memoryUserStore.set(email.toLowerCase(), fallbackObj);
 
+        // Guardar en Supabase vía HTTPS REST API directa
+        try {
+            const saved = await supabaseClient.insertUser({ name, email, phone });
+            if (saved) {
+                memoryUserStore.set(email.toLowerCase(), saved);
+            }
+        } catch (e) {
+            logger.warn(`[User] Supabase REST API exception: ${e.message}`);
+        }
+
+        // También intentar en PostgreSQL pool si está activo
         const sql = `
             INSERT INTO users (name, email, phone, created_at)
             VALUES ($1, $2, $3, NOW())
@@ -22,34 +34,26 @@ class User {
             DO UPDATE SET name = EXCLUDED.name, phone = EXCLUDED.phone
             RETURNING *;
         `;
-        const values = [name, email.toLowerCase(), phone];
-
         try {
-            const result = await query(sql, values);
+            const result = await query(sql, [name, email.toLowerCase(), phone]);
             if (result && result.rows && result.rows[0]) {
                 memoryUserStore.set(email.toLowerCase(), result.rows[0]);
-                return result.rows[0];
             }
-        } catch (error) {
-            logger.warn(`[UserModel] Guardando usuario en memoria (${error.message})`);
-        }
-        return fallbackObj;
+        } catch (error) {}
+
+        return memoryUserStore.get(email.toLowerCase()) || fallbackObj;
     }
 
     static async findAll() {
         try {
-            const sql = `SELECT * FROM users ORDER BY created_at DESC LIMIT 500;`;
-            const result = await query(sql, []);
-            if (result && result.rows) {
-                const dbMap = new Map(result.rows.map(u => [u.email.toLowerCase(), u]));
-                for (const [email, user] of memoryUserStore.entries()) {
-                    if (!dbMap.has(email)) dbMap.set(email, user);
+            const supabaseUsers = await supabaseClient.getUsers();
+            if (supabaseUsers && supabaseUsers.length > 0) {
+                for (const u of supabaseUsers) {
+                    memoryUserStore.set(u.email.toLowerCase(), u);
                 }
-                return Array.from(dbMap.values()).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
             }
-        } catch (error) {
-            logger.warn(`[UserModel] Leyendo usuarios de memoria (${error.message})`);
-        }
+        } catch (e) {}
+
         return Array.from(memoryUserStore.values()).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     }
 }

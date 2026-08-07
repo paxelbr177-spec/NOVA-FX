@@ -1,29 +1,13 @@
 import { query } from '../config/database.js';
+import supabaseClient from '../config/supabaseClient.js';
 
 /**
- * Modelo de Transacción para encapsular las consultas a PostgreSQL.
+ * Modelo de Transacción para encapsular las consultas a PostgreSQL / Supabase.
  */
 const memoryStore = new Map();
 
 class Transaction {
     static async create({ transactionId, type, amountSource, currencySource, currencyTarget, clientPixKey, clientPixKeyType, clientCbuCvu, clientName, clientEmail, clientPhone, fxRateSnapshot, marginApplied }) {
-        const sql = `
-            INSERT INTO transactions (
-                transaction_id, type, status, amount_source, currency_source, 
-                currency_target, client_pix_key, client_pix_key_type, client_cbu_cvu, 
-                client_name, client_email, client_phone,
-                fx_rate_snapshot, margin_applied, created_at, updated_at
-            ) VALUES (
-                $1, $2, 'PENDING_PAYMENT', $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), NOW()
-            ) RETURNING *;
-        `;
-        const values = [
-            transactionId, type, amountSource, currencySource, currencyTarget,
-            clientPixKey, clientPixKeyType, clientCbuCvu,
-            clientName || null, clientEmail || null, clientPhone || null,
-            JSON.stringify(fxRateSnapshot), marginApplied
-        ];
-        
         const fallbackObj = {
             transaction_id: transactionId,
             type,
@@ -45,19 +29,48 @@ class Transaction {
 
         memoryStore.set(transactionId, fallbackObj);
 
+        // Insertar vía Supabase REST API
+        try {
+            await supabaseClient.insertTransaction(fallbackObj);
+        } catch (e) {}
+
+        const sql = `
+            INSERT INTO transactions (
+                transaction_id, type, status, amount_source, currency_source, 
+                currency_target, client_pix_key, client_pix_key_type, client_cbu_cvu, 
+                client_name, client_email, client_phone,
+                fx_rate_snapshot, margin_applied, created_at, updated_at
+            ) VALUES (
+                $1, $2, 'PENDING_PAYMENT', $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), NOW()
+            ) RETURNING *;
+        `;
+        const values = [
+            transactionId, type, amountSource, currencySource, currencyTarget,
+            clientPixKey, clientPixKeyType, clientCbuCvu,
+            clientName || null, clientEmail || null, clientPhone || null,
+            JSON.stringify(fxRateSnapshot), marginApplied
+        ];
+
         try {
             const result = await query(sql, values);
             if (result && result.rows && result.rows[0]) {
                 memoryStore.set(transactionId, result.rows[0]);
                 return result.rows[0];
             }
-        } catch (error) {
-            console.warn('[TransactionModel] Alerta BD, guardando en memoria:', error.message);
-        }
+        } catch (error) {}
+
         return fallbackObj;
     }
 
     static async findAll() {
+        try {
+            const supabaseTxList = await supabaseClient.getTransactions();
+            if (supabaseTxList && supabaseTxList.length > 0) {
+                for (const t of supabaseTxList) {
+                    memoryStore.set(t.transaction_id, t);
+                }
+            }
+        } catch (e) {}
         try {
             const sql = `SELECT * FROM transactions ORDER BY created_at DESC LIMIT 200;`;
             const result = await query(sql, []);
