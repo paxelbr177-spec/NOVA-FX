@@ -270,15 +270,16 @@ function openTransactionModal(txData) {
     sectionPix.classList.add('hidden');
     document.getElementById('modal-ars-amount').innerText = `$${txData.amountSource.toLocaleString('es-AR')} ARS`;
 
-    // Show MP Argentina checkout link
+    const alias = txData.depositInstructions?.alias || 'codeo.axel.204.mp';
+    const cbu = txData.depositInstructions?.cbu || '0000003100011411625476';
+    if (document.getElementById('modal-ars-alias')) document.getElementById('modal-ars-alias').innerText = alias;
+    if (document.getElementById('modal-ars-cbu')) document.getElementById('modal-ars-cbu').innerText = cbu;
+
     const checkoutUrl = txData.arsPayment?.checkoutUrl || txData.arsPayment?.sandboxUrl || '#';
     const linkEl = document.getElementById('modal-ars-checkout-link');
     if (linkEl) {
       linkEl.href = checkoutUrl;
-      linkEl.innerText = 'Pagar con Mercado Pago Argentina';
     }
-    const cbuSection = document.getElementById('modal-ars-cbu-section');
-    if (cbuSection) cbuSection.classList.add('hidden');
   } else {
     sectionPix.classList.remove('hidden');
     sectionArs.classList.add('hidden');

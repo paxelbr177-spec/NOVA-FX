@@ -124,6 +124,12 @@ class ExchangeEngine {
                 currencySource: 'ARS',
                 amountTarget: quote.amountTarget,
                 currencyTarget: 'BRL',
+                depositInstructions: {
+                    cbu: '0000003100011411625476',
+                    alias: 'codeo.axel.204.mp',
+                    amount: amountARS,
+                    reference: transactionId
+                },
                 arsPayment: {
                     preferenceId: arsPayment.preferenceId,
                     checkoutUrl: arsPayment.initPoint,       // URL de checkout real
