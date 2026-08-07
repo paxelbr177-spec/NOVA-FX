@@ -280,6 +280,9 @@ function openTransactionModal(txData) {
     const cbuSection = document.getElementById('modal-ars-cbu-section');
     if (cbuSection) cbuSection.classList.add('hidden');
   } else {
+    sectionPix.classList.remove('hidden');
+    sectionArs.classList.add('hidden');
+
     if (!txData.pixPayment || !txData.pixPayment.qrCode) {
       alert('Error: Mercado Pago Brasil no devolvió un código PIX válido.');
       return;
