@@ -55,7 +55,10 @@ class SupabaseClient {
         try {
             const url = `${this.baseUrl}/transactions`;
             const res = await axios.post(url, txData, {
-                headers: this.headers,
+                headers: {
+                    ...this.headers,
+                    'Prefer': 'resolution=merge-duplicates,return=representation'
+                },
                 timeout: 5000
             });
             logger.info(`[SupabaseClient] ✅ Transacción ${txData.transaction_id} guardada en Supabase REST API`);
@@ -63,6 +66,25 @@ class SupabaseClient {
         } catch (error) {
             const errData = error.response?.data || error.message;
             logger.warn(`[SupabaseClient] Alerta guardando transacción vía REST API: ${JSON.stringify(errData)}`);
+            return null;
+        }
+    }
+
+    /**
+     * Actualiza una transacción en la tabla 'transactions' de Supabase vía HTTPS REST
+     */
+    async updateTransaction(transactionId, updateData) {
+        try {
+            const url = `${this.baseUrl}/transactions?transaction_id=eq.${transactionId}`;
+            const res = await axios.patch(url, updateData, {
+                headers: this.headers,
+                timeout: 5000
+            });
+            logger.info(`[SupabaseClient] ✅ Transacción ${transactionId} actualizada en Supabase REST API`);
+            return res.data;
+        } catch (error) {
+            const errData = error.response?.data || error.message;
+            logger.warn(`[SupabaseClient] Alerta actualizando transacción vía REST API: ${JSON.stringify(errData)}`);
             return null;
         }
     }

@@ -108,6 +108,14 @@ class Transaction {
         Object.assign(tx, additionalFields);
         memoryStore.set(transactionId, tx);
 
+        // Actualizar vía Supabase REST API
+        try {
+            await supabaseClient.updateTransaction(transactionId, {
+                status: newStatus,
+                ...additionalFields
+            });
+        } catch (e) {}
+
         try {
             let sql = `UPDATE transactions SET status = $1, updated_at = NOW()`;
             const values = [newStatus];
