@@ -34,7 +34,9 @@ export const config = Object.freeze({
     mpArAccessToken: process.env.MP_AR_ACCESS_TOKEN,
     mpArWebhookSecret: process.env.MP_AR_WEBHOOK_SECRET,
     webhookSecret: process.env.WEBHOOK_SECRET,
-    databaseUrl: process.env.DATABASE_URL || 'postgresql://postgres.jtsotmbqnlahoumvjtsh:jtsotmbqnlahoumvjtsh@aws-0-sa-east-1.pooler.supabase.com:6543/postgres',
+    databaseUrl: (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('postgres'))
+        ? process.env.DATABASE_URL 
+        : 'postgresql://postgres.jtsotmbqnlahoumvjtsh:jtsotmbqnlahoumvjtsh@aws-0-sa-east-1.pooler.supabase.com:6543/postgres',
     telegramBotToken: process.env.TELEGRAM_BOT_TOKEN,
     telegramChatId: process.env.TELEGRAM_CHAT_ID,
 });
