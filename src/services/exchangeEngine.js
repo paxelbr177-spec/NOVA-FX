@@ -20,55 +20,60 @@ class ExchangeEngine {
      * @returns {Promise<Object>} Datos completos de la cotización.
      */
     async getQuote(type, amount) {
+        let askUsdtArs, bidUsdtArs, askUsdtBrl, bidUsdtBrl;
+        let usingFallback = false;
+
         try {
-            // Obtener precios reales de Binance (Book Ticker para mejor precio)
+            // Intentar obtener precios reales de Binance (Book Ticker para mejor precio)
             const usdtArsBook = await binanceService.getBestOrderBook('USDTARS');
             const usdtBrlBook = await binanceService.getBestOrderBook('USDTBRL');
 
-            const askUsdtArs = usdtArsBook.askPrice; // Precio al que comprarías USDT pagando ARS
-            const bidUsdtArs = usdtArsBook.bidPrice; // Precio al que venderías USDT recibiendo ARS
-            const askUsdtBrl = usdtBrlBook.askPrice; // Precio al que comprarías USDT pagando BRL
-            const bidUsdtBrl = usdtBrlBook.bidPrice; // Precio al que venderías USDT recibiendo BRL
-
-            let amountUSDT, amountTarget, currencySource, currencyTarget;
-            const fxRateSnapshot = { askUsdtArs, bidUsdtArs, askUsdtBrl, bidUsdtBrl, timestamp: Date.now() };
-            const margin = config.fxMarginPercentage; // ej: 0.02 = 2%
-
-            if (type === 'ARS_TO_BRL') {
-                currencySource = 'ARS';
-                currencyTarget = 'BRL';
-                // Comprar USDT con ARS (al ask price) → Vender USDT por BRL (al bid price)
-                amountUSDT = amount / askUsdtArs;
-                amountTarget = amountUSDT * bidUsdtBrl;
-            } else if (type === 'BRL_TO_ARS') {
-                currencySource = 'BRL';
-                currencyTarget = 'ARS';
-                // Comprar USDT con BRL (al ask price) → Vender USDT por ARS (al bid price)
-                amountUSDT = amount / askUsdtBrl;
-                amountTarget = amountUSDT * bidUsdtArs;
-            } else {
-                throw new Error('Tipo de intercambio no soportado. Use ARS_TO_BRL o BRL_TO_ARS.');
-            }
-
-            // Aplicar margen de comisión (restar del monto destino)
-            const marginAmount = amountTarget * margin;
-            amountTarget = amountTarget - marginAmount;
-
-            return {
-                amountSource: amount,
-                currencySource,
-                amountTarget: parseFloat(amountTarget.toFixed(2)),
-                currencyTarget,
-                amountUsdtEstimate: parseFloat(amountUSDT.toFixed(8)),
-                rateSnapshot: fxRateSnapshot,
-                marginApplied: margin,
-                expiresAt: new Date(Date.now() + 30000).toISOString() // 30 segundos de validez
-            };
-
-        } catch (error) {
-            logger.error(`[ExchangeEngine] Error al obtener cotización (${type}, ${amount}): ${error.message}`);
-            throw error;
+            askUsdtArs = usdtArsBook.askPrice;
+            bidUsdtArs = usdtArsBook.bidPrice;
+            askUsdtBrl = usdtBrlBook.askPrice;
+            bidUsdtBrl = usdtBrlBook.bidPrice;
+        } catch (binanceError) {
+            // Fallback: usar cotizaciones de referencia si Binance no responde
+            logger.warn(`[ExchangeEngine] Binance API no disponible, usando cotizaciones fallback: ${binanceError.message}`);
+            usingFallback = true;
+            askUsdtArs = 1575.80;
+            bidUsdtArs = 1574.70;
+            askUsdtBrl = 5.1022;
+            bidUsdtBrl = 5.1021;
         }
+
+        let amountUSDT, amountTarget, currencySource, currencyTarget;
+        const fxRateSnapshot = { askUsdtArs, bidUsdtArs, askUsdtBrl, bidUsdtBrl, timestamp: Date.now(), isFallback: usingFallback };
+        const margin = config.fxMarginPercentage; // ej: 0.02 = 2%
+
+        if (type === 'ARS_TO_BRL') {
+            currencySource = 'ARS';
+            currencyTarget = 'BRL';
+            amountUSDT = amount / askUsdtArs;
+            amountTarget = amountUSDT * bidUsdtBrl;
+        } else if (type === 'BRL_TO_ARS') {
+            currencySource = 'BRL';
+            currencyTarget = 'ARS';
+            amountUSDT = amount / askUsdtBrl;
+            amountTarget = amountUSDT * bidUsdtArs;
+        } else {
+            throw new Error('Tipo de intercambio no soportado. Use ARS_TO_BRL o BRL_TO_ARS.');
+        }
+
+        // Aplicar margen de comisión (restar del monto destino)
+        const marginAmount = amountTarget * margin;
+        amountTarget = amountTarget - marginAmount;
+
+        return {
+            amountSource: amount,
+            currencySource,
+            amountTarget: parseFloat(amountTarget.toFixed(2)),
+            currencyTarget,
+            amountUsdtEstimate: parseFloat(amountUSDT.toFixed(8)),
+            rateSnapshot: fxRateSnapshot,
+            marginApplied: margin,
+            expiresAt: new Date(Date.now() + 30000).toISOString()
+        };
     }
 
     /**

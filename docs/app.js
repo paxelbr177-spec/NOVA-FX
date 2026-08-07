@@ -246,43 +246,13 @@ async function submitExchangeOrder() {
         openTransactionModal(result.data);
         return;
       }
+      const errorData = await res.json().catch(() => ({}));
+      alert(`Error del servidor: ${errorData.error || 'No se pudo crear la transacción. Intenta de nuevo.'}`);
     }
   } catch (e) {
-    console.warn('[Frontend] Modo simulación para transacción');
+    console.error('[Frontend] Error conectando al backend:', e);
+    alert('No se pudo conectar al servidor de NOVA FX. Verificá tu conexión e intentá de nuevo.');
   }
-
-  // Simulación local si la BD aún no está conectada
-  simulateLocalTransaction(payload);
-}
-
-/**
- * Simulación local para pruebas en pantalla
- */
-function simulateLocalTransaction(payload) {
-  const mockId = `TXN-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-  const mockTx = {
-    transactionId: mockId,
-    type: payload.type,
-    amountSource: payload.amount,
-    currencySource: payload.type === 'ARS_TO_BRL' ? 'ARS' : 'BRL',
-    amountTarget: state.quote ? state.quote.amountTarget : 472.50,
-    currencyTarget: payload.type === 'ARS_TO_BRL' ? 'BRL' : 'ARS',
-    status: 'PENDING_PAYMENT',
-    arsPayment: {
-      checkoutUrl: 'https://www.mercadopago.com.ar/checkout/v1/redirect?pref_id=demo',
-      amount: payload.amount
-    },
-    pixPayment: {
-      paymentId: '123456789',
-      qrCode: `00020101021226870014br.gov.bcb.pix0136123e4567-e89b-12d3-a456-426614174000520400005303986540${payload.amount}.005802BR5925NOVA_FX_EXCHANGE6009SAO_PAULO62070503***6304E2CA`,
-      qrCodeBase64: ''
-    }
-  };
-
-  state.activeTxData = mockTx;
-  state.activeTxId = mockId;
-  addHistoryRecord(mockTx);
-  openTransactionModal(mockTx);
 }
 
 /**
