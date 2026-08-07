@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NOVA FX | Cambio Bilateral ARS ↔ BRL (Binance & PIX)</title>
+  
+  <!-- Fonts: Outfit & Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- QRCode.js para generación visual de QR PIX -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="dark-theme">
+
+  <!-- Background Animated Gradient Orbs -->
+  <div class="bg-glow bg-glow-1"></div>
+  <div class="bg-glow bg-glow-2"></div>
+  <div class="bg-glow bg-glow-3"></div>
+
+  <!-- Header Section -->
+  <header class="navbar">
+    <div class="container navbar-inner">
+      <div class="brand">
+        <div class="brand-icon">
+          <i data-lucide="repeat"></i>
+        </div>
+        <div class="brand-text">
+          <span class="brand-title">NOVA<span class="highlight">FX</span></span>
+          <span class="brand-subtitle">Bilateral FX Engine (ARS ↔ BRL)</span>
+        </div>
+      </div>
+
+      <!-- Live System Badges -->
+      <div class="status-pills">
+        <div class="status-pill status-active">
+          <span class="dot pulse"></span>
+          <i data-lucide="zap" class="pill-icon"></i>
+          <span>Binance Spot API: <strong>Conectado</strong></span>
+        </div>
+        <div class="status-pill status-active">
+          <span class="dot pulse"></span>
+          <i data-lucide="qr-code" class="pill-icon"></i>
+          <span>MP Brasil PIX: <strong>Activo</strong></span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Live Market Ticker Banner -->
+  <section class="ticker-banner">
+    <div class="container ticker-container">
+      <div class="ticker-item">
+        <span class="ticker-label"><i data-lucide="dollar-sign"></i> USDT / ARS:</span>
+        <span class="ticker-value" id="ticker-usdt-ars">1,575.80 ARS</span>
+        <span class="ticker-spread" id="spread-usdt-ars">Bid 1574.70 / Ask 1575.80</span>
+      </div>
+      <div class="ticker-divider"></div>
+      <div class="ticker-item">
+        <span class="ticker-label"><i data-lucide="coins"></i> USDT / BRL:</span>
+        <span class="ticker-value" id="ticker-usdt-brl">5.1021 BRL</span>
+        <span class="ticker-spread" id="spread-usdt-brl">Bid 5.1021 / Ask 5.1022</span>
+      </div>
+      <div class="ticker-divider"></div>
+      <div class="ticker-item highlight-item">
+        <span class="ticker-label"><i data-lucide="arrow-right-left"></i> Cambio Cruzado Directo:</span>
+        <span class="ticker-value" id="ticker-cross-rate">1 BRL ≈ 308.63 ARS</span>
+        <span class="ticker-badge">Comisión 2.0%</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Grid Layout -->
+  <main class="container main-content">
+    
+    <!-- Left Column: Converter Widget -->
+    <section class="exchange-card glass-panel">
+      <div class="card-header">
+        <h2>Operar Cambio Bilateral</h2>
+        <p class="card-desc">Sin liquidez propia — Ejecución automática Binance + PIX</p>
+      </div>
+
+      <!-- Flow Type Selector Tabs -->
+      <div class="flow-tabs">
+        <button class="tab-btn active" id="tab-ars-brl" onclick="setFlowType('ARS_TO_BRL')">
+          <span class="flag">🇦🇷 ➔ 🇧🇷</span>
+          <span>Pesos ➔ Reales (PIX)</span>
+        </button>
+        <button class="tab-btn" id="tab-brl-ars" onclick="setFlowType('BRL_TO_ARS')">
+          <span class="flag">🇧🇷 ➔ 🇦🇷</span>
+          <span>Reales ➔ Pesos (CBU)</span>
+        </button>
+      </div>
+
+      <!-- Amount Input / Output Section -->
+      <div class="converter-box">
+        
+        <!-- Source Input -->
+        <div class="input-group glass-input">
+          <div class="input-label-row">
+            <label for="amount-source" id="label-source-currency">Monto a enviar (ARS)</label>
+            <span class="balance-hint">Mínimo: $1,000 ARS</span>
+          </div>
+          <div class="input-control">
+            <input type="number" id="amount-source" value="100000" placeholder="0.00" oninput="recalculateQuote()">
+            <div class="currency-badge" id="badge-source-currency">
+              <span class="currency-flag" id="flag-source">🇦🇷</span>
+              <span id="code-source">ARS</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Switch Direction Button -->
+        <div class="switch-divider">
+          <button class="btn-swap" onclick="toggleFlowDirection()" title="Invertir dirección">
+            <i data-lucide="arrow-down-up"></i>
+          </button>
+        </div>
+
+        <!-- Target Output -->
+        <div class="input-group glass-input readonly-group">
+          <div class="input-label-row">
+            <label for="amount-target" id="label-target-currency">Monto a recibir (BRL estimado)</label>
+            <span class="rate-guarantee" id="quote-timer"><i data-lucide="clock"></i> Cotización garantizada 30s</span>
+          </div>
+          <div class="input-control">
+            <input type="text" id="amount-target" value="Calculando..." readonly>
+            <div class="currency-badge" id="badge-target-currency">
+              <span class="currency-flag" id="flag-target">🇧🇷</span>
+              <span id="code-target">BRL</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Quote Detail Breakdown -->
+      <div class="quote-breakdown glass-subpanel">
+        <div class="breakdown-row">
+          <span>Tasa de cambio spot Binance:</span>
+          <strong id="breakdown-spot-rate">1 BRL = 308.63 ARS</strong>
+        </div>
+        <div class="breakdown-row">
+          <span>Comisión de plataforma (2.0%):</span>
+          <span id="breakdown-margin">-9.64 BRL</span>
+        </div>
+        <div class="breakdown-row">
+          <span>Equivalente cripto intermedio:</span>
+          <span id="breakdown-usdt">~63.46 USDT</span>
+        </div>
+        <div class="breakdown-row total-row">
+          <span>Monto Líquido a Desembolsar:</span>
+          <strong class="text-emerald" id="breakdown-final-amount">472.50 BRL</strong>
+        </div>
+      </div>
+
+      <!-- Client Destination Details Form -->
+      <div class="destination-form">
+        
+        <!-- ARS -> BRL Inputs -->
+        <div id="form-ars-to-brl" class="form-flow-section">
+          <label class="section-label"><i data-lucide="send"></i> Datos de Destino (PIX Brasil)</label>
+          <div class="form-row">
+            <div class="form-field flex-1">
+              <label for="pix-key-type">Tipo de Chave PIX</label>
+              <select id="pix-key-type" class="glass-select">
+                <option value="CPF">CPF (Cédula de Identidad)</option>
+                <option value="EMAIL">Email</option>
+                <option value="PHONE">Teléfono celular (+55)</option>
+                <option value="EVP">Chave Aleatória (EVP)</option>
+              </select>
+            </div>
+            <div class="form-field flex-2">
+              <label for="pix-key-value">Chave PIX de Destino</label>
+              <input type="text" id="pix-key-value" class="glass-input-field" placeholder="Ej: 123.456.789-00 o usuario@email.com">
+            </div>
+          </div>
+        </div>
+
+        <!-- BRL -> ARS Inputs -->
+        <div id="form-brl-to-ars" class="form-flow-section hidden">
+          <label class="section-label"><i data-lucide="landmark"></i> Datos Bancarios de Destino (Argentina)</label>
+          <div class="form-group">
+            <label for="client-cbu">CBU o CVU en Argentina (22 dígitos)</label>
+            <input type="text" id="client-cbu" class="glass-input-field" maxlength="22" placeholder="0000003100000000000000">
+          </div>
+          <div class="form-group">
+            <label for="payer-email">Email del Pagador PIX</label>
+            <input type="email" id="payer-email" class="glass-input-field" placeholder="cliente@brasil.com">
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Action Button -->
+      <button class="btn-primary-glow" id="btn-submit-order" onclick="submitExchangeOrder()">
+        <i data-lucide="zap"></i>
+        <span id="btn-submit-text">Iniciar Transacción ARS ➔ BRL</span>
+      </button>
+
+    </section>
+
+    <!-- Right Column: Live Status & Recent Transactions -->
+    <div class="side-panel">
+      
+      <!-- Engine Architecture Summary Card -->
+      <div class="glass-panel info-card">
+        <h3><i data-lucide="shield-check"></i> Motor de Ejecución Automática</h3>
+        <ul class="feature-list">
+          <li>
+            <i data-lucide="check-circle-2" class="icon-success"></i>
+            <div>
+              <strong>Binance Spot Engine</strong>
+              <span>Ejecución de orden de mercado en tiempo real sin spreads ocultos.</span>
+            </div>
+          </li>
+          <li>
+            <i data-lucide="check-circle-2" class="icon-success"></i>
+            <div>
+              <strong>Mercado Pago Brasil PIX API</strong>
+              <span>Cobro automático por QR dinámico y desembolso instantáneo.</span>
+            </div>
+          </li>
+          <li>
+            <i data-lucide="check-circle-2" class="icon-success"></i>
+            <div>
+              <strong>Seguridad e Idempotencia HMAC</strong>
+              <span>Verificación criptográfica SHA-256 de webhooks para prevención de doble gasto.</span>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Recent Transactions Table Card -->
+      <div class="glass-panel history-card">
+        <div class="card-header-flex">
+          <h3><i data-lucide="history"></i> Transacciones Recientes</h3>
+          <button class="btn-icon" onclick="refreshTransactions()" title="Actualizar"><i data-lucide="refresh-cw"></i></button>
+        </div>
+        <div class="table-responsive">
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>ID Transacción</th>
+                <th>Tipo</th>
+                <th>Monto</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody id="history-tbody">
+              <tr>
+                <td colspan="4" class="text-center text-muted">No hay transacciones registradas en la sesión.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Modal: Live Transaction Progress & PIX QR Display -->
+  <div class="modal-overlay hidden" id="modal-tx">
+    <div class="modal-card glass-modal">
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+
+      <div class="modal-header">
+        <span class="badge-type" id="modal-tx-type">ARS ➔ BRL</span>
+        <h3 id="modal-tx-id">TXN-1786116000-8f9a</h3>
+        <span class="tx-time" id="modal-tx-time">Hace unos momentos</span>
+      </div>
+
+      <!-- State Machine Visual Stepper -->
+      <div class="stepper-container">
+        <div class="step-item active" id="step-1">
+          <div class="step-icon"><i data-lucide="clock"></i></div>
+          <span class="step-label">Pago Pendiente</span>
+        </div>
+        <div class="step-line" id="line-1"></div>
+        <div class="step-item" id="step-2">
+          <div class="step-icon"><i data-lucide="check-circle"></i></div>
+          <span class="step-label">Acreditado</span>
+        </div>
+        <div class="step-line" id="line-2"></div>
+        <div class="step-item" id="step-3">
+          <div class="step-icon"><i data-lucide="arrow-right-left"></i></div>
+          <span class="step-label">Binance Spot</span>
+        </div>
+        <div class="step-line" id="line-3"></div>
+        <div class="step-item" id="step-4">
+          <div class="step-icon"><i data-lucide="send"></i></div>
+          <span class="step-label">Desembolso PIX</span>
+        </div>
+        <div class="step-line" id="line-4"></div>
+        <div class="step-item" id="step-5">
+          <div class="step-icon"><i data-lucide="sparkles"></i></div>
+          <span class="step-label">Completado</span>
+        </div>
+      </div>
+
+      <!-- Modal Body Content: QR Code / Deposit Instructions -->
+      <div class="modal-body">
+        
+        <!-- Deposit Instructions for ARS -> BRL -->
+        <div id="modal-deposit-ars" class="modal-section hidden">
+          <div class="alert-box alert-info">
+            <i data-lucide="info"></i>
+            <div>
+              <strong>Instrucciones de Depósito en Pesos (ARS)</strong>
+              <p>Por favor transfiere el monto exacto a la siguiente cuenta de recaudación:</p>
+            </div>
+          </div>
+          <div class="copy-box">
+            <div class="copy-field">
+              <span class="label">Alias CBU/CVU:</span>
+              <strong id="modal-ars-alias">empresa.ars.fx</strong>
+              <button class="btn-copy" onclick="copyToClipboard('empresa.ars.fx')"><i data-lucide="copy"></i> Copiar</button>
+            </div>
+            <div class="copy-field">
+              <span class="label">CBU Numérico:</span>
+              <strong id="modal-ars-cbu">0000003100000000000000</strong>
+              <button class="btn-copy" onclick="copyToClipboard('0000003100000000000000')"><i data-lucide="copy"></i> Copiar</button>
+            </div>
+            <div class="copy-field">
+              <span class="label">Monto a Transferir:</span>
+              <strong id="modal-ars-amount" class="text-emerald">$100,000 ARS</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- PIX QR Display for BRL -> ARS -->
+        <div id="modal-pix-brl" class="modal-section hidden">
+          <div class="pix-qr-wrapper">
+            <div id="qrcode-container" class="qr-canvas"></div>
+            <div class="pix-details">
+              <span class="label">Código PIX Copia e Cola:</span>
+              <div class="pix-code-box">
+                <textarea id="pix-code-text" readonly rows="3"></textarea>
+                <button class="btn-primary-glow btn-sm" onclick="copyPixCode()">
+                  <i data-lucide="copy"></i> Copiar Código PIX
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dev Simulator Button -->
+        <div class="dev-simulation-box">
+          <span class="dev-badge">🛠️ Entorno de Desarrollo</span>
+          <button class="btn-secondary" onclick="simulatePaymentWebhook()">
+            <i data-lucide="play-circle"></i> Simular Webhook de Depósito Recepcionado
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>
