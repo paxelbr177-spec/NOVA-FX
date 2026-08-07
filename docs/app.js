@@ -205,9 +205,16 @@ async function submitExchangeOrder() {
     return;
   }
 
+  const clientName = document.getElementById('client-name')?.value.trim() || '';
+  const clientPhone = document.getElementById('client-phone')?.value.trim() || '';
+  const clientEmail = document.getElementById('client-email-input')?.value.trim() || '';
+
   const payload = {
     type: state.currentFlow,
-    amount: amount
+    amount: amount,
+    clientName,
+    clientPhone,
+    clientEmail
   };
 
   if (state.currentFlow === 'ARS_TO_BRL') {
@@ -221,7 +228,7 @@ async function submitExchangeOrder() {
     payload.clientPixKeyType = pixKeyType;
   } else {
     const cbu = document.getElementById('client-cbu').value.trim();
-    const email = document.getElementById('payer-email').value.trim();
+    const email = document.getElementById('payer-email')?.value.trim() || clientEmail;
     if (!cbu || cbu.length < 15) {
       alert('Por favor ingrese un CBU/CVU válido de 22 dígitos en Argentina.');
       return;

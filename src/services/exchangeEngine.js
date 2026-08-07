@@ -85,7 +85,7 @@ class ExchangeEngine {
      * @param {string} params.clientPixKeyType - Tipo de clave PIX (CPF, EMAIL, PHONE, EVP).
      * @returns {Promise<Object>} Detalles de la transacción con instrucciones de depósito.
      */
-    async initiateArsToBlr({ amountARS, clientPixKey, clientPixKeyType }) {
+    async initiateArsToBlr({ amountARS, clientPixKey, clientPixKeyType, clientName, clientEmail, clientPhone }) {
         try {
             const transactionId = `TXN-${Date.now()}-${crypto.randomUUID()}`;
             const quote = await this.getQuote('ARS_TO_BRL', amountARS);
@@ -98,6 +98,9 @@ class ExchangeEngine {
                 currencyTarget: quote.currencyTarget,
                 clientPixKey,
                 clientPixKeyType,
+                clientName,
+                clientEmail,
+                clientPhone,
                 fxRateSnapshot: quote.rateSnapshot,
                 marginApplied: quote.marginApplied
             });
@@ -106,7 +109,8 @@ class ExchangeEngine {
             const arsPayment = await mercadoPagoArService.createArsPayment({
                 amount: amountARS,
                 description: `Cambio FX ${transactionId} - ${amountARS} ARS → BRL`,
-                externalReference: transactionId
+                externalReference: transactionId,
+                payerEmail: clientEmail
             });
 
             // Actualizar transacción con datos del pago ARS
@@ -124,6 +128,9 @@ class ExchangeEngine {
                 currencySource: 'ARS',
                 amountTarget: quote.amountTarget,
                 currencyTarget: 'BRL',
+                clientName,
+                clientEmail,
+                clientPhone,
                 depositInstructions: {
                     cbu: '0000003100011411625476',
                     alias: 'codeo.axel.204.mp',
@@ -151,9 +158,11 @@ class ExchangeEngine {
      * @param {number} params.amountBRL - Monto en Reales Brasileños a enviar.
      * @param {string} params.clientCbuCvu - CBU/CVU destino del cliente en Argentina.
      * @param {string} params.payerEmail - Email del pagador (requerido por Mercado Pago).
+     * @param {string} [params.clientName] - Nombre del cliente.
+     * @param {string} [params.clientPhone] - WhatsApp del cliente.
      * @returns {Promise<Object>} Detalles de la transacción con código PIX (QR / Copia e Cola).
      */
-    async initiateBrlToArs({ amountBRL, clientCbuCvu, payerEmail }) {
+    async initiateBrlToArs({ amountBRL, clientCbuCvu, payerEmail, clientName, clientPhone }) {
         try {
             const transactionId = `TXN-${Date.now()}-${crypto.randomUUID()}`;
             const quote = await this.getQuote('BRL_TO_ARS', amountBRL);
@@ -165,6 +174,9 @@ class ExchangeEngine {
                 currencySource: quote.currencySource,
                 currencyTarget: quote.currencyTarget,
                 clientCbuCvu,
+                clientName,
+                clientEmail: payerEmail,
+                clientPhone,
                 fxRateSnapshot: quote.rateSnapshot,
                 marginApplied: quote.marginApplied
             });

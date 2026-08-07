@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NOVA FX | Panel de Administración Privado</title>
+  
+  <!-- Fonts: Outfit & Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .admin-container {
+      max-width: 1300px;
+      margin: 0 auto;
+      padding: 24px 16px;
+    }
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .kpi-card {
+      padding: 20px;
+      border-radius: 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--bg-card-border);
+      backdrop-filter: blur(12px);
+    }
+    .kpi-title {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .kpi-value {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .btn-wa {
+      background: #25D366;
+      color: #000;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 8px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+    }
+    .btn-wa:hover {
+      background: #1eb956;
+    }
+    .pin-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(11, 14, 20, 0.95);
+      backdrop-filter: blur(16px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+    .pin-box {
+      width: 100%;
+      max-width: 380px;
+      padding: 32px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body class="dark-theme">
+
+  <!-- Background Animated Gradient Orbs -->
+  <div class="bg-glow bg-glow-1"></div>
+  <div class="bg-glow bg-glow-2"></div>
+
+  <!-- PIN Protection Modal -->
+  <div id="pin-modal" class="pin-modal">
+    <div class="pin-box glass-modal">
+      <div style="font-size: 2.5rem; margin-bottom: 12px;">🔒</div>
+      <h2>Acceso Administrador</h2>
+      <p style="color: var(--text-muted); margin-bottom: 20px; font-size: 0.9rem;">Ingresa tu PIN de 6 dígitos para acceder al panel.</p>
+      <input type="password" id="input-pin" class="glass-input-field" maxlength="6" style="text-align: center; font-size: 1.8rem; letter-spacing: 8px; margin-bottom: 16px;" placeholder="******">
+      <button class="btn-primary-glow" style="width: 100%;" onclick="submitPin()">Ingresar al Panel</button>
+      <div id="pin-error" style="color: #ef4444; margin-top: 12px; font-size: 0.85rem;" class="hidden">PIN incorrecto. Intenta de nuevo.</div>
+    </div>
+  </div>
+
+  <!-- Header Section -->
+  <header class="navbar">
+    <div class="container navbar-inner">
+      <div class="brand">
+        <div class="brand-icon">
+          <i data-lucide="shield"></i>
+        </div>
+        <div class="brand-text">
+          <span class="brand-title">NOVA<span class="highlight">FX</span> Admin</span>
+          <span class="brand-subtitle">Panel de Control & Soporte de Transacciones</span>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 12px; align-items: center;">
+        <a href="index.html" class="btn-secondary" style="text-decoration: none; font-size: 0.85rem;">
+          <i data-lucide="arrow-left"></i> Volver a la Web
+        </a>
+        <button class="btn-secondary" onclick="logoutAdmin()" style="font-size: 0.85rem;">
+          <i data-lucide="log-out"></i> Salir
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Admin Main Content -->
+  <main class="admin-container">
+    
+    <!-- KPI Summary Cards -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-title">Volumen Total ARS <i data-lucide="dollar-sign"></i></div>
+        <div class="kpi-value text-emerald" id="kpi-vol-ars">$0.00</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-title">Volumen Total BRL <i data-lucide="coins"></i></div>
+        <div class="kpi-value text-emerald" id="kpi-vol-brl">R$ 0.00</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-title">Ganancias (2% Comisión) <i data-lucide="sparkles"></i></div>
+        <div class="kpi-value" style="color: var(--color-primary);" id="kpi-comision">$0.00 ARS</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-title">Alertas / Devoluciones <i data-lucide="alert-triangle"></i></div>
+        <div class="kpi-value" style="color: #ef4444;" id="kpi-alertas">0</div>
+      </div>
+    </div>
+
+    <!-- Filter & Search Controls -->
+    <div class="glass-panel" style="padding: 20px; margin-bottom: 24px;">
+      <div style="display: flex; gap: 16px; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+        <div style="display: flex; gap: 8px;">
+          <button class="tab-btn active" id="filter-all" onclick="setFilter('ALL')">Todas</button>
+          <button class="tab-btn" id="filter-review" onclick="setFilter('REVIEW')">⚠️ Requieren Atención</button>
+          <button class="tab-btn" id="filter-completed" onclick="setFilter('COMPLETED')">✅ Completadas</button>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <input type="text" id="admin-search" class="glass-input-field" placeholder="Buscar por ID, Cliente o Teléfono..." style="width: 280px;" oninput="renderAdminTable()">
+          <button class="btn-secondary" onclick="loadAdminData()"><i data-lucide="refresh-cw"></i> Refrescar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Admin Transactions Table -->
+    <div class="glass-panel" style="padding: 20px;">
+      <h3 style="margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+        <i data-lucide="list"></i> Registro de Operaciones & Datos de Contacto
+      </h3>
+
+      <div class="table-responsive">
+        <table class="history-table" style="width: 100%;">
+          <thead>
+            <tr>
+              <th>ID & Fecha</th>
+              <th>Tipo</th>
+              <th>Cliente (Contacto)</th>
+              <th>Monto Enviado</th>
+              <th>Monto Recibido</th>
+              <th>Estado</th>
+              <th>Acciones de Soporte</th>
+            </tr>
+          </thead>
+          <tbody id="admin-tbody">
+            <tr>
+              <td colspan="7" class="text-center text-muted">Cargando datos del servidor...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <script src="admin.js"></script>
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>

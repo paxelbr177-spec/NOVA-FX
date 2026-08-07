@@ -45,11 +45,10 @@
           <i data-lucide="zap" class="pill-icon"></i>
           <span>Binance Spot API: <strong>Conectado</strong></span>
         </div>
-        <div class="status-pill status-active">
-          <span class="dot pulse"></span>
-          <i data-lucide="qr-code" class="pill-icon"></i>
-          <span>MP Brasil PIX: <strong>Activo</strong></span>
-        </div>
+        <a href="admin.html" class="status-pill" style="text-decoration:none;color:var(--text-main);background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);">
+          <i data-lucide="lock" class="pill-icon" style="color:var(--color-primary)"></i>
+          <span>Panel Admin 🔒</span>
+        </a>
       </div>
     </div>
   </header>
@@ -194,6 +193,23 @@
           <div class="form-group">
             <label for="payer-email">Email del Pagador PIX</label>
             <input type="email" id="payer-email" class="glass-input-field" placeholder="cliente@brasil.com">
+          </div>
+        <!-- Common Customer Contact Information -->
+        <div class="form-flow-section" style="margin-top: 16px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 16px;">
+          <label class="section-label"><i data-lucide="user"></i> Tus Datos de Contacto (Para Soporte y Devoluciones)</label>
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label for="client-name">Nombre Completo</label>
+            <input type="text" id="client-name" class="glass-input-field" placeholder="Ej: Axel Gómez">
+          </div>
+          <div class="form-row">
+            <div class="form-field flex-1">
+              <label for="client-phone">Número de WhatsApp</label>
+              <input type="text" id="client-phone" class="glass-input-field" placeholder="Ej: +5491112345678 o +5511999999999">
+            </div>
+            <div class="form-field flex-1">
+              <label for="client-email-input">Correo Electrónico</label>
+              <input type="email" id="client-email-input" class="glass-input-field" placeholder="ejemplo@email.com">
+            </div>
           </div>
         </div>
 

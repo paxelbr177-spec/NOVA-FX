@@ -6,19 +6,22 @@ import { query } from '../config/database.js';
 const memoryStore = new Map();
 
 class Transaction {
-    static async create({ transactionId, type, amountSource, currencySource, currencyTarget, clientPixKey, clientPixKeyType, clientCbuCvu, fxRateSnapshot, marginApplied }) {
+    static async create({ transactionId, type, amountSource, currencySource, currencyTarget, clientPixKey, clientPixKeyType, clientCbuCvu, clientName, clientEmail, clientPhone, fxRateSnapshot, marginApplied }) {
         const sql = `
             INSERT INTO transactions (
                 transaction_id, type, status, amount_source, currency_source, 
                 currency_target, client_pix_key, client_pix_key_type, client_cbu_cvu, 
+                client_name, client_email, client_phone,
                 fx_rate_snapshot, margin_applied, created_at, updated_at
             ) VALUES (
-                $1, $2, 'PENDING_PAYMENT', $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW()
+                $1, $2, 'PENDING_PAYMENT', $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), NOW()
             ) RETURNING *;
         `;
         const values = [
             transactionId, type, amountSource, currencySource, currencyTarget,
-            clientPixKey, clientPixKeyType, clientCbuCvu, JSON.stringify(fxRateSnapshot), marginApplied
+            clientPixKey, clientPixKeyType, clientCbuCvu,
+            clientName || null, clientEmail || null, clientPhone || null,
+            JSON.stringify(fxRateSnapshot), marginApplied
         ];
         
         const fallbackObj = {
@@ -31,6 +34,9 @@ class Transaction {
             client_pix_key: clientPixKey,
             client_pix_key_type: clientPixKeyType,
             client_cbu_cvu: clientCbuCvu,
+            client_name: clientName || null,
+            client_email: clientEmail || null,
+            client_phone: clientPhone || null,
             fx_rate_snapshot: fxRateSnapshot,
             margin_applied: marginApplied,
             created_at: new Date(),
@@ -51,6 +57,24 @@ class Transaction {
         return fallbackObj;
     }
 
+    static async findAll() {
+        try {
+            const sql = `SELECT * FROM transactions ORDER BY created_at DESC LIMIT 200;`;
+            const result = await query(sql, []);
+            if (result && result.rows) {
+                // Fusionar memoria y BD evitando duplicados
+                const dbMap = new Map(result.rows.map(r => [r.transaction_id, r]));
+                for (const [id, tx] of memoryStore.entries()) {
+                    if (!dbMap.has(id)) dbMap.set(id, tx);
+                }
+                return Array.from(dbMap.values()).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            }
+        } catch (error) {
+            console.warn('[TransactionModel] Leyendo transacciones de memoria:', error.message);
+        }
+        return Array.from(memoryStore.values()).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    }
+
     static async findByTransactionId(transactionId) {
         try {
             const sql = `SELECT * FROM transactions WHERE transaction_id = $1;`;
@@ -63,7 +87,7 @@ class Transaction {
     }
 
     static async updateStatus(transactionId, newStatus, additionalFields = {}) {
-        const allowedFields = ['amount_usdt', 'amount_target', 'binance_order_id', 'mp_payment_id', 'mp_pix_qr_code', 'mp_ar_preference_id', 'error_details'];
+        const allowedFields = ['amount_usdt', 'amount_target', 'binance_order_id', 'mp_payment_id', 'mp_pix_qr_code', 'mp_ar_preference_id', 'client_name', 'client_email', 'client_phone', 'error_details'];
         
         let tx = memoryStore.get(transactionId) || { transaction_id: transactionId };
         tx.status = newStatus;

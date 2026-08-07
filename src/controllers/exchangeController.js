@@ -36,7 +36,7 @@ export const getQuote = async (req, res, next) => {
  */
 export const createTransaction = async (req, res, next) => {
     try {
-        const { type, amount, clientPixKey, clientPixKeyType, clientCbuCvu, payerEmail } = req.body;
+        const { type, amount, clientPixKey, clientPixKeyType, clientCbuCvu, payerEmail, clientName, clientEmail, clientPhone } = req.body;
 
         if (!type || (type !== 'ARS_TO_BRL' && type !== 'BRL_TO_ARS')) {
             return res.status(400).json({ success: false, error: 'Tipo de cambio inválido.' });
@@ -56,16 +56,21 @@ export const createTransaction = async (req, res, next) => {
             transaction = await exchangeEngine.initiateArsToBlr({
                 amountARS: numAmount,
                 clientPixKey,
-                clientPixKeyType
+                clientPixKeyType,
+                clientName,
+                clientEmail,
+                clientPhone
             });
         } else {
-            if (!clientCbuCvu || !payerEmail) {
-                return res.status(400).json({ success: false, error: 'Faltan datos bancarios (clientCbuCvu, payerEmail) para BRL_TO_ARS.' });
+            if (!clientCbuCvu || (!payerEmail && !clientEmail)) {
+                return res.status(400).json({ success: false, error: 'Faltan datos bancarios para BRL_TO_ARS.' });
             }
             transaction = await exchangeEngine.initiateBrlToArs({
                 amountBRL: numAmount,
                 clientCbuCvu,
-                payerEmail
+                payerEmail: payerEmail || clientEmail,
+                clientName,
+                clientPhone
             });
         }
 
