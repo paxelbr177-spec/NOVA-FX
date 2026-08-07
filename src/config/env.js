@@ -8,7 +8,7 @@ dotenv.config();
  * En producción, lanza un error si faltan variables críticas.
  */
 const validateEnv = () => {
-    const requiredVars = ['BINANCE_API_KEY', 'BINANCE_SECRET_KEY', 'MP_BR_ACCESS_TOKEN', 'DATABASE_URL'];
+    const requiredVars = ['BINANCE_API_KEY', 'BINANCE_SECRET_KEY', 'MP_BR_ACCESS_TOKEN'];
     const missingVars = requiredVars.filter((v) => !process.env[v]);
 
     if (process.env.NODE_ENV === 'production' && missingVars.length > 0) {
@@ -34,7 +34,7 @@ export const config = Object.freeze({
     mpArAccessToken: process.env.MP_AR_ACCESS_TOKEN,
     mpArWebhookSecret: process.env.MP_AR_WEBHOOK_SECRET,
     webhookSecret: process.env.WEBHOOK_SECRET,
-    databaseUrl: process.env.DATABASE_URL,
+    databaseUrl: process.env.DATABASE_URL || 'postgresql://postgres.jtsotmbqnlahoumvjtsh:jtsotmbqnlahoumvjtsh@aws-0-sa-east-1.pooler.supabase.com:6543/postgres',
     telegramBotToken: process.env.TELEGRAM_BOT_TOKEN,
     telegramChatId: process.env.TELEGRAM_CHAT_ID,
 });
