@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: ars-brl-fx-backend
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: NODE_ENV
+        value: production
+      - key: BINANCE_BASE_URL
+        value: https://api.binance.com
+      - key: BINANCE_API_KEY
+        sync: false
+      - key: BINANCE_SECRET_KEY
+        sync: false
+      - key: MP_BR_ACCESS_TOKEN
+        sync: false
+      - key: MP_WEBHOOK_SECRET
+        sync: false
+      - key: MP_AR_ACCESS_TOKEN
+        sync: false
+      - key: MP_AR_WEBHOOK_SECRET
+        sync: false
+      - key: WEBHOOK_SECRET
+        sync: false
+      - key: FX_MARGIN_PERCENTAGE
+        value: 0.02
+      - key: DATABASE_URL
+        sync: false
