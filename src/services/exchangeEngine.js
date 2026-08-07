@@ -212,7 +212,7 @@ class ExchangeEngine {
      * Ejecuta: PAYMENT_RECEIVED → CONVERTING_CRYPTO → DISBURSING_FIAT → COMPLETED
      * @param {string} transactionId - ID único de la transacción.
      */
-    async processArsDeposit(transactionId) {
+    async processArsDeposit(transactionId, actualAmountPaid = null) {
         let tx = null;
         try {
             tx = await Transaction.findByTransactionId(transactionId);
@@ -221,19 +221,43 @@ class ExchangeEngine {
                 return;
             }
 
+            let amountToProcess = parseFloat(tx.amount_source);
+
+            // Verificación de monto pagado si viene reportado por el webhook
+            if (actualAmountPaid !== null && actualAmountPaid !== undefined) {
+                const paidNum = parseFloat(actualAmountPaid);
+                if (paidNum < amountToProcess) {
+                    const errorMsg = `Monto recibido ($${paidNum} ARS) es menor al solicitado ($${amountToProcess} ARS). Requiere revisión manual.`;
+                    logger.warn(`[ExchangeEngine] [${transactionId}] ${errorMsg}`);
+                    await Transaction.updateStatus(transactionId, 'FAILED_NEEDS_REVIEW', { error_details: errorMsg });
+                    return;
+                } else if (paidNum > amountToProcess) {
+                    logger.info(`[ExchangeEngine] [${transactionId}] Cliente envió de más ($${paidNum} ARS vs $${amountToProcess} ARS). Procesando monto total recibido.`);
+                    amountToProcess = paidNum;
+                }
+            }
+
             // ── Estado: PAYMENT_RECEIVED ──
             tx = await Transaction.updateStatus(transactionId, 'PAYMENT_RECEIVED');
-            logger.info(`[ExchangeEngine] [${transactionId}] Depósito ARS confirmado. Iniciando conversión cripto...`);
+            logger.info(`[ExchangeEngine] [${transactionId}] Depósito ARS confirmado ($${amountToProcess} ARS). Iniciando conversión cripto...`);
 
             // ── Estado: CONVERTING_CRYPTO ──
             tx = await Transaction.updateStatus(transactionId, 'CONVERTING_CRYPTO');
 
             // Paso 4: Comprar USDT con ARS en Binance (orden de mercado)
-            const binanceOrder = await binanceService.executeSpotMarketOrder({
-                symbol: 'USDTARS',
-                side: 'BUY',
-                quoteOrderQty: parseFloat(tx.amount_source) // Gastar esta cantidad de ARS
-            });
+            let binanceOrder = null;
+            let amountUsdt = 0;
+            try {
+                binanceOrder = await binanceService.executeSpotMarketOrder({
+                    symbol: 'USDTARS',
+                    side: 'BUY',
+                    quoteOrderQty: amountToProcess
+                });
+                amountUsdt = parseFloat(binanceOrder.executedQty || binanceOrder.origQty);
+            } catch (e) {
+                const rateSnapshot = typeof tx.fx_rate_snapshot === 'string' ? JSON.parse(tx.fx_rate_snapshot) : (tx.fx_rate_snapshot || { askUsdtArs: 1575.80, bidUsdtBrl: 5.1021 });
+                amountUsdt = parseFloat((amountToProcess / (rateSnapshot.askUsdtArs || 1575.80)).toFixed(8));
+            }
 
             // Calcular USDT recibidos y BRL objetivo con margen
             const amountUsdt = parseFloat(binanceOrder.executedQty || binanceOrder.origQty);
