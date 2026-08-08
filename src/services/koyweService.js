@@ -106,6 +106,43 @@ class KoyweService {
     }
 
     /**
+     * Flujo ARS -> BRL (Cobro en CBU/CVU Argentina)
+     */
+    async createArsPayin({ amountArs, externalReference, clientEmail }) {
+        const endpoint = `/organizations/${this.orgId}/merchants/${this.merchantId}/orders`;
+        const payload = {
+            type: "PAYIN",
+            originCurrencySymbol: "ARS",
+            amountIn: Number(amountArs),
+            externalId: externalReference,
+            paymentMethod: "BANK_TRANSFER",
+            customer: { email: clientEmail || "cliente@argentina.com" }
+        };
+        const result = await this.#makeRequest('POST', endpoint, payload);
+        logger.info(`[KoyweService] ✅ Orden ARS PAYIN creada: ${result.orderId}`);
+        return result;
+    }
+
+    /**
+     * Flujo ARS -> BRL (Desembolso a PIX Brasil)
+     */
+    async createPixPayout({ amountBrl, pixKey, externalReference }) {
+        const endpoint = `/organizations/${this.orgId}/merchants/${this.merchantId}/orders`;
+        const payload = {
+            type: "PAYOUT",
+            originCurrencySymbol: "BRL",
+            destinationCurrencySymbol: "BRL",
+            amountIn: Number(amountBrl),
+            destinationAccountId: pixKey,
+            externalId: externalReference,
+            description: `Desembolso FX ${externalReference}`
+        };
+        const result = await this.#makeRequest('POST', endpoint, payload);
+        logger.info(`[KoyweService] ✅ Orden de Payout PIX creada: ${result.orderId}`);
+        return result;
+    }
+
+    /**
      * Obtiene el estado de una orden en Koywe
      */
     async getOrderStatus(orderId) {

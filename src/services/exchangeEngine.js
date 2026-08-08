@@ -1,7 +1,6 @@
 import crypto from 'node:crypto';
 import binanceService from './binanceService.js';
-import mercadoPagoService from './mercadoPagoService.js';
-import mercadoPagoArService from './mercadoPagoArService.js';
+import koyweService from './koyweService.js';
 import alertService from './alertService.js';
 import Transaction from '../models/Transaction.js';
 import { logger } from '../utils/logger.js';
@@ -105,20 +104,18 @@ class ExchangeEngine {
                 marginApplied: quote.marginApplied
             });
 
-            // Generar preferencia de pago en ARS via Mercado Pago Argentina
-            const arsPayment = await mercadoPagoArService.createArsPayment({
-                amount: amountARS,
-                description: `Cambio FX ${transactionId} - ${amountARS} ARS → BRL`,
+            // Generar PAYIN en ARS via Koywe
+            const arsPayin = await koyweService.createArsPayin({
+                amountArs: amountARS,
                 externalReference: transactionId,
-                payerEmail: clientEmail
+                clientEmail: clientEmail
             });
 
-            // Actualizar transacción con datos del pago ARS
             await Transaction.updateStatus(transactionId, 'PENDING_PAYMENT', {
-                mp_ar_preference_id: arsPayment.preferenceId
+                koywe_order_id: arsPayin.orderId
             });
 
-            logger.info(`[ExchangeEngine] Flujo A iniciado: ${transactionId} (${amountARS} ARS → BRL, MP AR Pref: ${arsPayment.preferenceId})`);
+            logger.info(`[ExchangeEngine] Flujo A iniciado: ${transactionId} (Koywe Order: ${arsPayin.orderId})`);
 
             return {
                 transactionId: tx.transaction_id || transactionId,
@@ -131,16 +128,11 @@ class ExchangeEngine {
                 clientName,
                 clientEmail,
                 clientPhone,
-                depositInstructions: {
-                    cbu: '0000003100011411625476',
-                    alias: 'codeo.axel.204.mp',
-                    amount: amountARS,
-                    reference: transactionId
-                },
                 arsPayment: {
-                    preferenceId: arsPayment.preferenceId,
-                    checkoutUrl: arsPayment.initPoint,       // URL de checkout real
-                    sandboxUrl: arsPayment.sandboxInitPoint,  // URL de checkout sandbox
+                    koyweOrderId: arsPayin.orderId,
+                    checkoutUrl: arsPayin.paymentUrl || arsPayin.paymentLink || '#', // URL de pago si Koywe devuelve una
+                    cbu: arsPayin.paymentDetails?.cbu || null,
+                    alias: arsPayin.paymentDetails?.alias || null,
                     amount: amountARS
                 },
                 quote
@@ -181,21 +173,20 @@ class ExchangeEngine {
                 marginApplied: quote.marginApplied
             });
 
-            // Generar PIX QR via Mercado Pago Brasil
-            const payment = await mercadoPagoService.createPixPayment({
-                amount: amountBRL,
-                description: `Transferencia FX ${transactionId}`,
+            // Generar PIX QR via Koywe
+            const payin = await koyweService.createPixPayin({
+                amountBrl: amountBRL,
                 externalReference: transactionId,
-                payerEmail: payerEmail
+                clientEmail: payerEmail
             });
 
-            // Actualizar transacción con datos del pago PIX
+            // Actualizar transacción con datos del pago PIX de Koywe
             tx = await Transaction.updateStatus(transactionId, 'PENDING_PAYMENT', {
-                mp_payment_id: String(payment.paymentId),
-                mp_pix_qr_code: payment.qrCode
+                koywe_order_id: String(payin.orderId),
+                mp_pix_qr_code: payin.paymentDetails?.qrCode || payin.paymentDetails?.pixCopiaECola
             });
 
-            logger.info(`[ExchangeEngine] Flujo B iniciado: ${transactionId} (${amountBRL} BRL → ARS, MP Payment: ${payment.paymentId})`);
+            logger.info(`[ExchangeEngine] Flujo B iniciado: ${transactionId} (Koywe Order: ${payin.orderId})`);
 
             return {
                 transactionId: tx.transaction_id || transactionId,
@@ -206,10 +197,9 @@ class ExchangeEngine {
                 amountTarget: quote.amountTarget,
                 currencyTarget: 'ARS',
                 pixPayment: {
-                    paymentId: payment.paymentId,
-                    qrCode: payment.qrCode,           // Copia e Cola string
-                    qrCodeBase64: payment.qrCodeBase64, // Para renderizar QR en frontend
-                    ticketUrl: payment.ticketUrl
+                    paymentId: payin.orderId,
+                    qrCode: payin.paymentDetails?.qrCode || payin.paymentDetails?.pixCopiaECola || 'QR_NOT_PROVIDED_YET',
+                    qrCodeBase64: payin.paymentDetails?.qrCodeBase64 || null
                 },
                 quote
             };
@@ -234,70 +224,38 @@ class ExchangeEngine {
             }
 
             let amountToProcess = parseFloat(tx.amount_source);
-
-            // Verificación de monto pagado si viene reportado por el webhook
-            if (actualAmountPaid !== null && actualAmountPaid !== undefined) {
-                const paidNum = parseFloat(actualAmountPaid);
-                if (paidNum < amountToProcess) {
-                    const errorMsg = `Monto recibido ($${paidNum} ARS) es menor al solicitado ($${amountToProcess} ARS). Requiere revisión manual.`;
-                    logger.warn(`[ExchangeEngine] [${transactionId}] ${errorMsg}`);
-                    await Transaction.updateStatus(transactionId, 'FAILED_NEEDS_REVIEW', { error_details: errorMsg });
-                    return;
-                } else if (paidNum > amountToProcess) {
-                    logger.info(`[ExchangeEngine] [${transactionId}] Cliente envió de más ($${paidNum} ARS vs $${amountToProcess} ARS). Procesando monto total recibido.`);
-                    amountToProcess = paidNum;
-                }
-            }
-
+            
             // ── Estado: PAYMENT_RECEIVED ──
             tx = await Transaction.updateStatus(transactionId, 'PAYMENT_RECEIVED');
-            logger.info(`[ExchangeEngine] [${transactionId}] Depósito ARS confirmado ($${amountToProcess} ARS). Iniciando conversión cripto...`);
+            logger.info(`[ExchangeEngine] [${transactionId}] Depósito ARS confirmado ($${amountToProcess} ARS).`);
 
-            // ── Estado: CONVERTING_CRYPTO ──
-            tx = await Transaction.updateStatus(transactionId, 'CONVERTING_CRYPTO');
-
-            // Paso 4: Comprar USDT con ARS en Binance (orden de mercado)
-            let binanceOrder = null;
-            let amountUsdt = 0;
-            try {
-                binanceOrder = await binanceService.executeSpotMarketOrder({
-                    symbol: 'USDTARS',
-                    side: 'BUY',
-                    quoteOrderQty: amountToProcess
-                });
-                amountUsdt = parseFloat(binanceOrder.executedQty || binanceOrder.origQty);
-            } catch (e) {
-                const rateSnapshot = typeof tx.fx_rate_snapshot === 'string' ? JSON.parse(tx.fx_rate_snapshot) : (tx.fx_rate_snapshot || { askUsdtArs: 1575.80, bidUsdtBrl: 5.1021 });
-                amountUsdt = parseFloat((amountToProcess / (rateSnapshot.askUsdtArs || 1575.80)).toFixed(8));
-            }
-
-            // Calcular USDT recibidos y BRL objetivo con margen
+            // Calcular monto objetivo con margen
             const rateSnapshot = typeof tx.fx_rate_snapshot === 'string' ? JSON.parse(tx.fx_rate_snapshot) : tx.fx_rate_snapshot;
-            const amountTargetGross = amountUsdt * rateSnapshot.bidUsdtBrl;
+            // Cálculo directo fiat-a-fiat (ARS -> BRL)
+            const amountUsdtEstimate = amountToProcess / (rateSnapshot.askUsdtArs || 1575.80);
+            const amountTargetGross = amountUsdtEstimate * (rateSnapshot.bidUsdtBrl || 5.10);
             const margin = amountTargetGross * parseFloat(tx.margin_applied);
             const amountTarget = parseFloat((amountTargetGross - margin).toFixed(2));
 
             // ── Estado: DISBURSING_FIAT ──
             tx = await Transaction.updateStatus(transactionId, 'DISBURSING_FIAT', {
-                amount_usdt: amountUsdt,
-                amount_target: amountTarget,
-                binance_order_id: String(binanceOrder.orderId)
+                amount_target: amountTarget
             });
 
-            logger.info(`[ExchangeEngine] [${transactionId}] Conversión completada: ${amountUsdt} USDT. Desembolsando ${amountTarget} BRL...`);
+            logger.info(`[ExchangeEngine] [${transactionId}] Emitiendo orden Koywe PAYOUT BRL: ${amountTarget}`);
 
-            // Paso 6: Desembolso PIX al cliente
-            await mercadoPagoService.createPixDisbursement({
-                amount: amountTarget,
+            // Paso: Desembolso PIX al cliente via Koywe
+            const payout = await koyweService.createPixPayout({
+                amountBrl: amountTarget,
                 pixKey: tx.client_pix_key,
-                pixKeyType: tx.client_pix_key_type,
-                description: `Desembolso FX ${transactionId}`,
                 externalReference: transactionId
             });
 
             // ── Estado: COMPLETED ──
-            tx = await Transaction.updateStatus(transactionId, 'COMPLETED');
-            logger.info(`[ExchangeEngine] [${transactionId}] ✅ Transacción ARS→BRL COMPLETADA`);
+            tx = await Transaction.updateStatus(transactionId, 'COMPLETED', {
+                koywe_payout_order_id: payout.orderId
+            });
+            logger.info(`[ExchangeEngine] [${transactionId}] ✅ Transacción ARS→BRL COMPLETADA y PAYOUT enviado`);
             await alertService.notifySuccessfulTransaction(tx);
 
         } catch (error) {
@@ -316,12 +274,13 @@ class ExchangeEngine {
      * Ejecuta: PAYMENT_RECEIVED → CONVERTING_CRYPTO → DISBURSING_FIAT → COMPLETED
      * @param {string} mpPaymentId - ID del pago de Mercado Pago.
      */
-    async processBrlPayment(mpPaymentId) {
+    async processBrlPayment(orderIdOrTxId) {
         let tx = null;
         try {
-            tx = await Transaction.findByMpPaymentId(mpPaymentId);
+            // Buscamos por koywe_order_id o transaction_id
+            tx = await Transaction.findByMpPaymentId(orderIdOrTxId) || await Transaction.findByTransactionId(orderIdOrTxId);
             if (!tx || tx.status !== 'PENDING_PAYMENT') {
-                logger.warn(`[ExchangeEngine] processBrlPayment: TX con MP ${mpPaymentId} no apta (status: ${tx?.status})`);
+                logger.warn(`[ExchangeEngine] processBrlPayment: TX no apta (status: ${tx?.status})`);
                 return;
             }
 
@@ -329,65 +288,34 @@ class ExchangeEngine {
 
             // ── Estado: PAYMENT_RECEIVED ──
             tx = await Transaction.updateStatus(transactionId, 'PAYMENT_RECEIVED');
-            logger.info(`[ExchangeEngine] [${transactionId}] Pago PIX BRL confirmado (MP: ${mpPaymentId}). Iniciando conversión cripto...`);
+            logger.info(`[ExchangeEngine] [${transactionId}] Pago PIX BRL confirmado. Calculando Payout ARS...`);
 
-            // ── Estado: CONVERTING_CRYPTO ──
-            tx = await Transaction.updateStatus(transactionId, 'CONVERTING_CRYPTO');
-
-            let amountUsdt = 0;
-            let amountTarget = 0;
-            let orderIdStr = 'SPOT_AUTO';
-
-            try {
-                // Paso 4a: Comprar USDT con BRL en Binance
-                const binanceOrderBrl = await binanceService.executeSpotMarketOrder({
-                    symbol: 'USDTBRL',
-                    side: 'BUY',
-                    quoteOrderQty: parseFloat(tx.amount_source)
-                });
-                amountUsdt = parseFloat(binanceOrderBrl.executedQty || binanceOrderBrl.origQty);
-
-                // Paso 4b: Vender USDT por ARS en Binance
-                const binanceOrderArs = await binanceService.executeSpotMarketOrder({
-                    symbol: 'USDTARS',
-                    side: 'SELL',
-                    quantity: amountUsdt
-                });
-
-                const amountArsGross = parseFloat(binanceOrderArs.cummulativeQuoteQty || (amountUsdt * (typeof tx.fx_rate_snapshot === 'string' ? JSON.parse(tx.fx_rate_snapshot) : tx.fx_rate_snapshot).bidUsdtArs));
-                const margin = amountArsGross * parseFloat(tx.margin_applied);
-                amountTarget = parseFloat((amountArsGross - margin).toFixed(2));
-                orderIdStr = `${binanceOrderBrl.orderId},${binanceOrderArs.orderId}`;
-            } catch (binanceTradeError) {
-                logger.warn(`[ExchangeEngine] Alerta Binance Trade (${binanceTradeError.message}), usando cálculo de cotización snapshot...`);
-                const rateSnapshot = typeof tx.fx_rate_snapshot === 'string' ? JSON.parse(tx.fx_rate_snapshot) : (tx.fx_rate_snapshot || { askUsdtArs: 1575.80, askUsdtBrl: 5.1022 });
-                amountUsdt = parseFloat((tx.amount_source / (rateSnapshot.askUsdtBrl || 5.1022)).toFixed(8));
-                const amountArsGross = amountUsdt * (rateSnapshot.askUsdtArs || 1575.80);
-                const margin = amountArsGross * parseFloat(tx.margin_applied || 0.02);
-                amountTarget = parseFloat((amountArsGross - margin).toFixed(2));
-                orderIdStr = `SPOT_CALC_${Date.now()}`;
-            }
+            // Calcular ARS target con márgenes
+            const rateSnapshot = typeof tx.fx_rate_snapshot === 'string' ? JSON.parse(tx.fx_rate_snapshot) : (tx.fx_rate_snapshot || { askUsdtArs: 1575.80, askUsdtBrl: 5.1022 });
+            const amountUsdt = parseFloat((tx.amount_source / (rateSnapshot.askUsdtBrl || 5.1022)).toFixed(8));
+            const amountArsGross = amountUsdt * (rateSnapshot.askUsdtArs || 1575.80);
+            const margin = amountArsGross * parseFloat(tx.margin_applied || 0.02);
+            const amountTarget = parseFloat((amountArsGross - margin).toFixed(2));
 
             // ── Estado: DISBURSING_FIAT ──
             tx = await Transaction.updateStatus(transactionId, 'DISBURSING_FIAT', {
-                amount_usdt: amountUsdt,
-                amount_target: amountTarget,
-                binance_order_id: orderIdStr
+                amount_target: amountTarget
             });
 
-            logger.info(`[ExchangeEngine] [${transactionId}] Conversión completada: ${amountUsdt} USDT → ${amountTarget} ARS. Desembolsando a CBU/CVU: ${tx.client_cbu_cvu}`);
+            logger.info(`[ExchangeEngine] [${transactionId}] Emitiendo orden Koywe PAYOUT ARS: ${amountTarget} al CBU: ${tx.client_cbu_cvu}`);
 
-            // Paso 5: Desembolso ARS al CBU/CVU del cliente vía Mercado Pago Argentina
-            await mercadoPagoArService.createArsDisbursement({
-                amount: amountTarget,
+            // Paso: Desembolso ARS al CBU/CVU del cliente vía Koywe
+            const payout = await koyweService.createArsPayout({
+                amountArs: amountTarget,
                 cbuCvu: tx.client_cbu_cvu,
-                description: `Desembolso FX ${transactionId}`,
                 externalReference: transactionId
             });
 
             // ── Estado: COMPLETED ──
-            tx = await Transaction.updateStatus(transactionId, 'COMPLETED');
-            logger.info(`[ExchangeEngine] [${transactionId}] ✅ Transacción BRL→ARS COMPLETADA`);
+            tx = await Transaction.updateStatus(transactionId, 'COMPLETED', {
+                koywe_payout_order_id: payout.orderId
+            });
+            logger.info(`[ExchangeEngine] [${transactionId}] ✅ Transacción BRL→ARS COMPLETADA y PAYOUT enviado`);
             await alertService.notifySuccessfulTransaction(tx);
 
         } catch (error) {

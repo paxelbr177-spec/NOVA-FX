@@ -4,34 +4,42 @@ import mercadoPagoArService from '../services/mercadoPagoArService.js';
 import Transaction from '../models/Transaction.js';
 import { logger } from '../utils/logger.js';
 
+import koyweService from '../services/koyweService.js';
+
 /**
- * @description Procesa webhooks provenientes de Mercado Pago Brasil
+ * @description Procesa webhooks provenientes de Koywe
  */
-export const handleMercadoPagoWebhook = async (req, res, next) => {
+export const handleKoyweWebhook = async (req, res, next) => {
     res.status(200).send('OK');
 
     try {
-        const { action, data, type } = req.body || {};
-        const paymentId = data?.id || req.query['data.id'] || req.query.id || req.body?.id;
+        const payload = req.body || {};
+        // Koywe suele enviar { orderId, externalId, status, type, ... }
+        const orderId = payload.orderId || payload.id;
+        const externalId = payload.externalId;
+        const status = payload.status;
         
-        logger.info(`[WebhookController] Webhook MP Brasil recibido (Payment ID: ${paymentId}, Action: ${action || type})`);
+        logger.info(`[WebhookController] Webhook Koywe recibido (Order ID: ${orderId}, Ext ID: ${externalId}, Status: ${status})`);
 
-        if (!paymentId) return;
+        if (!orderId) return;
 
-        const paymentData = await mercadoPagoService.getPaymentStatus(String(paymentId));
-        logger.info(`[WebhookController] Estado de pago MP Brasil ${paymentId}: ${paymentData?.status}`);
-        
-        if (paymentData && paymentData.status === 'approved') {
-            const existingTx = await Transaction.findByMpPaymentId(String(paymentId));
-            if (existingTx && existingTx.status !== 'PENDING_PAYMENT') {
-                logger.info(`[WebhookController] Pago MP Brasil ${paymentId} ya procesado (status: ${existingTx.status}).`);
-                return;
+        // Si la orden no está en un estado exitoso, ignoramos
+        if (status !== 'PROCESSED' && status !== 'COMPLETED' && status !== 'SUCCESS') {
+            return;
+        }
+
+        const existingTx = await Transaction.findByMpPaymentId(String(orderId)) || await Transaction.findByTransactionId(String(externalId));
+        if (existingTx && existingTx.status === 'PENDING_PAYMENT') {
+            if (existingTx.type === 'BRL_TO_ARS') {
+                logger.info(`[WebhookController] Pago Koywe BRL (PIX) confirmado para TX ${existingTx.transaction_id}`);
+                await exchangeEngine.processBrlPayment(String(orderId));
+            } else if (existingTx.type === 'ARS_TO_BRL') {
+                logger.info(`[WebhookController] Pago Koywe ARS confirmado para TX ${existingTx.transaction_id}`);
+                await exchangeEngine.processArsDeposit(String(externalId) || String(orderId));
             }
-
-            await exchangeEngine.processBrlPayment(String(paymentId));
         }
     } catch (error) {
-        logger.error(`[WebhookController] Error procesando webhook de MP Brasil: ${error.message}`);
+        logger.error(`[WebhookController] Error procesando webhook de Koywe: ${error.message}`);
     }
 };
 

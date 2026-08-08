@@ -428,8 +428,8 @@ function openTransactionModal(txData) {
     sectionPix.classList.add('hidden');
     document.getElementById('modal-ars-amount').innerText = `$${txData.amountSource.toLocaleString('es-AR')} ARS`;
 
-    const alias = txData.depositInstructions?.alias || 'codeo.axel.204.mp';
-    const cbu = txData.depositInstructions?.cbu || '0000003100011411625476';
+    const alias = txData.arsPayment?.alias || '... (Cargando CVU Koywe) ...';
+    const cbu = txData.arsPayment?.cbu || '... (Cargando CBU Koywe) ...';
     if (document.getElementById('modal-ars-alias')) document.getElementById('modal-ars-alias').innerText = alias;
     if (document.getElementById('modal-ars-cbu')) document.getElementById('modal-ars-cbu').innerText = cbu;
 
