@@ -1,6 +1,4 @@
 import exchangeEngine from '../services/exchangeEngine.js';
-import mercadoPagoService from '../services/mercadoPagoService.js';
-import mercadoPagoArService from '../services/mercadoPagoArService.js';
 import Transaction from '../models/Transaction.js';
 import { logger } from '../utils/logger.js';
 
