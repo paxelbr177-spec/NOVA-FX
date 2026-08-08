@@ -45,13 +45,17 @@ class KoyweService {
         };
 
         try {
-            const response = await axios({
+            const axiosConfig = {
                 method,
                 url,
                 headers,
-                data: payload,
                 timeout: 10000
-            });
+            };
+            if (payload && method !== 'GET') {
+                axiosConfig.data = payload;
+            }
+            
+            const response = await axios(axiosConfig);
             return response.data;
         } catch (error) {
             const errorData = error.response?.data || error.message;
@@ -60,22 +64,56 @@ class KoyweService {
         }
     }
 
+    async #createOrGetContact(email, country) {
+        const endpoint = `/organizations/${this.orgId}/merchants/${this.merchantId}/contacts`;
+        
+        // Search if contact already exists
+        try {
+            const res = await this.#makeRequest('GET', endpoint); // just get all, search is buggy
+            if (res && res.contacts && res.contacts.length > 0) {
+                const contact = res.contacts.find(c => c.email === email);
+                if (contact) return contact._id || contact.contactId || contact.id;
+            }
+        } catch (e) {
+            logger.warn(`[KoyweService] No se pudo buscar el contacto: ${e.message}`);
+        }
+
+        // Create new contact
+        try {
+            const payload = {
+                email: email,
+                firstName: "Cliente",
+                lastName: "NovaFX",
+                countrySymbol: country,
+                businessType: "PERSON",
+                type: "PERSON"
+            };
+            const result = await this.#makeRequest('POST', endpoint, payload);
+            const cid = result._id || result.contactId || result.id;
+            logger.info(`[KoyweService] Contacto creado: ${cid}`);
+            return cid;
+        } catch (e) {
+            logger.error(`[KoyweService] Error creando contacto: ${JSON.stringify(e.response?.data || e.message)}`);
+            throw e;
+        }
+    }
+
     /**
      * Flujo BRL -> ARS (Cobro en PIX Brasil)
      * Crea una orden PAYIN en BRL. Koywe generará el PIX.
      */
     async createPixPayin({ amountBrl, externalReference, clientEmail }) {
+        const contactId = await this.#createOrGetContact(clientEmail || "cliente@brasil.com", "BR");
         const endpoint = `/organizations/${this.orgId}/merchants/${this.merchantId}/orders`;
         
         const payload = {
             type: "PAYIN",
             originCurrencySymbol: "BRL",
+            destinationCurrencySymbol: "ARS",
             amountIn: Number(amountBrl),
             externalId: externalReference,
-            paymentMethod: "PIX",
-            customer: {
-                email: clientEmail || "cliente@brasil.com"
-            }
+            paymentMethods: [{ method: "PIX" }],
+            contactId: contactId
         };
 
         const result = await this.#makeRequest('POST', endpoint, payload);
@@ -88,16 +126,17 @@ class KoyweService {
      * Crea una orden PAYOUT en ARS hacia el CBU del cliente.
      */
     async createArsPayout({ amountArs, cbuCvu, externalReference }) {
+        const contactId = await this.#createOrGetContact("cliente@argentina.com", "AR");
         const endpoint = `/organizations/${this.orgId}/merchants/${this.merchantId}/orders`;
         
         const payload = {
             type: "PAYOUT",
-            originCurrencySymbol: "ARS", // Assuming Koywe converts internal balance to ARS
+            originCurrencySymbol: "ARS",
             destinationCurrencySymbol: "ARS",
-            amountIn: Number(amountArs),
+            amountOut: Number(amountArs),
             destinationAccountId: cbuCvu,
             externalId: externalReference,
-            description: `Desembolso FX ${externalReference}`
+            contactId: contactId
         };
 
         const result = await this.#makeRequest('POST', endpoint, payload);
@@ -109,14 +148,16 @@ class KoyweService {
      * Flujo ARS -> BRL (Cobro en CBU/CVU Argentina)
      */
     async createArsPayin({ amountArs, externalReference, clientEmail }) {
+        const contactId = await this.#createOrGetContact(clientEmail || "cliente@argentina.com", "AR");
         const endpoint = `/organizations/${this.orgId}/merchants/${this.merchantId}/orders`;
         const payload = {
             type: "PAYIN",
             originCurrencySymbol: "ARS",
+            destinationCurrencySymbol: "ARS",
             amountIn: Number(amountArs),
             externalId: externalReference,
-            paymentMethod: "BANK_TRANSFER",
-            customer: { email: clientEmail || "cliente@argentina.com" }
+            paymentMethods: [{ method: "QRI" }],
+            contactId: contactId
         };
         const result = await this.#makeRequest('POST', endpoint, payload);
         logger.info(`[KoyweService] ✅ Orden ARS PAYIN creada: ${result.orderId}`);
@@ -127,15 +168,16 @@ class KoyweService {
      * Flujo ARS -> BRL (Desembolso a PIX Brasil)
      */
     async createPixPayout({ amountBrl, pixKey, externalReference }) {
+        const contactId = await this.#createOrGetContact("cliente@brasil.com", "BR");
         const endpoint = `/organizations/${this.orgId}/merchants/${this.merchantId}/orders`;
         const payload = {
             type: "PAYOUT",
             originCurrencySymbol: "BRL",
             destinationCurrencySymbol: "BRL",
-            amountIn: Number(amountBrl),
+            amountOut: Number(amountBrl),
             destinationAccountId: pixKey,
             externalId: externalReference,
-            description: `Desembolso FX ${externalReference}`
+            contactId: contactId
         };
         const result = await this.#makeRequest('POST', endpoint, payload);
         logger.info(`[KoyweService] ✅ Orden de Payout PIX creada: ${result.orderId}`);
