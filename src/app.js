@@ -6,7 +6,6 @@ import { config } from './config/env.js';
 import { initDatabase } from './config/database.js';
 import { logger } from './utils/logger.js';
 import exchangeRoutes from './routes/exchangeRoutes.js';
-import webhookRoutes from './routes/webhookRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import { notFoundHandler, globalErrorHandler } from './middlewares/errorHandler.js';
 
@@ -30,7 +29,6 @@ app.use(express.json({
 
 // Montar rutas
 app.use('/api/v1/exchange', exchangeRoutes);
-app.use('/api/v1/webhooks', webhookRoutes);
 app.use('/api/v1/admin', adminRoutes);
 
 // Health check endpoint

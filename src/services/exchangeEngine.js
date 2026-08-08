@@ -1,6 +1,5 @@
 import crypto from 'node:crypto';
 import binanceService from './binanceService.js';
-import koyweService from './koyweService.js';
 import alertService from './alertService.js';
 import Transaction from '../models/Transaction.js';
 import { logger } from '../utils/logger.js';
@@ -104,18 +103,9 @@ class ExchangeEngine {
                 marginApplied: quote.marginApplied
             });
 
-            // Generar PAYIN en ARS via Koywe
-            const arsPayin = await koyweService.createArsPayin({
-                amountArs: amountARS,
-                externalReference: transactionId,
-                clientEmail: clientEmail
-            });
+            await Transaction.updateStatus(transactionId, 'PENDING_PAYMENT');
 
-            await Transaction.updateStatus(transactionId, 'PENDING_PAYMENT', {
-                koywe_order_id: arsPayin.orderId
-            });
-
-            logger.info(`[ExchangeEngine] Flujo A iniciado: ${transactionId} (Koywe Order: ${arsPayin.orderId})`);
+            logger.info(`[ExchangeEngine] Flujo A iniciado: ${transactionId} (Esperando depósito Bitso ARS)`);
 
             return {
                 transactionId: tx.transaction_id || transactionId,
@@ -129,11 +119,10 @@ class ExchangeEngine {
                 clientEmail,
                 clientPhone,
                 arsPayment: {
-                    koyweOrderId: arsPayin.orderId,
-                    checkoutUrl: arsPayin.paymentUrl || arsPayin.paymentLink || '#', // URL de pago si Koywe devuelve una
-                    cbu: arsPayin.paymentDetails?.cbu || null,
-                    alias: arsPayin.paymentDetails?.alias || null,
-                    amount: amountARS
+                    cbu: process.env.BITSO_STATIC_CVU || '0000000000000000000000',
+                    alias: process.env.BITSO_STATIC_ALIAS || 'bitso.alias.cvu',
+                    amount: amountARS,
+                    checkoutUrl: null // No checkout URL for Bitso Personal
                 },
                 quote
             };
@@ -173,20 +162,9 @@ class ExchangeEngine {
                 marginApplied: quote.marginApplied
             });
 
-            // Generar PIX QR via Koywe
-            const payin = await koyweService.createPixPayin({
-                amountBrl: amountBRL,
-                externalReference: transactionId,
-                clientEmail: payerEmail
-            });
+            await Transaction.updateStatus(transactionId, 'PENDING_PAYMENT');
 
-            // Actualizar transacción con datos del pago PIX de Koywe
-            tx = await Transaction.updateStatus(transactionId, 'PENDING_PAYMENT', {
-                koywe_order_id: String(payin.orderId),
-                mp_pix_qr_code: payin.paymentDetails?.qrCode || payin.paymentDetails?.pixCopiaECola
-            });
-
-            logger.info(`[ExchangeEngine] Flujo B iniciado: ${transactionId} (Koywe Order: ${payin.orderId})`);
+            logger.info(`[ExchangeEngine] Flujo B iniciado: ${transactionId} (Esperando depósito Bitso BRL)`);
 
             return {
                 transactionId: tx.transaction_id || transactionId,
@@ -197,9 +175,9 @@ class ExchangeEngine {
                 amountTarget: quote.amountTarget,
                 currencyTarget: 'ARS',
                 pixPayment: {
-                    paymentId: payin.orderId,
-                    qrCode: payin.paymentDetails?.qrCode || payin.paymentDetails?.pixCopiaECola || 'QR_NOT_PROVIDED_YET',
-                    qrCodeBase64: payin.paymentDetails?.qrCodeBase64 || null
+                    paymentId: 'STATIC_PIX',
+                    qrCode: process.env.BITSO_STATIC_PIX_KEY || 'chave.pix.estatica@banco.br',
+                    qrCodeBase64: null
                 },
                 quote
             };

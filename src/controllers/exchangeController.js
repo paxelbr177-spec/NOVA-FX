@@ -108,6 +108,8 @@ export const registerUser = async (req, res, next) => {
     }
 };
 
+import bitsoService from '../services/bitsoService.js';
+
 /**
  * @description Obtiene el estado de una transacción existente
  * @param {import('express').Request} req
@@ -118,10 +120,28 @@ export const getTransactionStatus = async (req, res, next) => {
     try {
         const { transactionId } = req.params;
 
-        const transaction = await Transaction.findByTransactionId(transactionId);
+        let transaction = await Transaction.findByTransactionId(transactionId);
 
         if (!transaction) {
             return res.status(404).json({ success: false, error: 'Transacción no encontrada.' });
+        }
+
+        // Si está pendiente de pago, consultamos Bitso para ver si ya entró el fondeo
+        if (transaction.status === 'PENDING_PAYMENT') {
+            const currency = transaction.currency_source.toLowerCase(); // 'ars' o 'brl'
+            const amount = parseFloat(transaction.amount_source);
+            
+            const deposit = await bitsoService.verifyDeposit(currency, amount);
+            
+            if (deposit) {
+                // Depósito encontrado, actualizamos a PROCESSING
+                await Transaction.updateStatus(transactionId, 'PROCESSING', {
+                    bitso_funding_id: deposit.fid,
+                    bitso_funding_details: JSON.stringify(deposit)
+                });
+                // Refrescar transacción
+                transaction = await Transaction.findByTransactionId(transactionId);
+            }
         }
 
         return res.status(200).json({ success: true, data: transaction });
