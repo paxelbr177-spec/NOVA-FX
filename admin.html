@@ -5,86 +5,53 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NOVA FX | Panel de Administración Privado</title>
   
-  <!-- Fonts: Outfit & Plus Jakarta Sans -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  
-  <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
-
   <link rel="stylesheet" href="styles.css">
   <style>
-    .admin-container {
-      max-width: 1300px;
-      margin: 0 auto;
-      padding: 24px 16px;
-    }
-    .kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 16px;
-      margin-bottom: 24px;
-    }
-    .kpi-card {
-      padding: 20px;
-      border-radius: 16px;
-      background: var(--bg-card);
-      border: 1px solid var(--bg-card-border);
-      backdrop-filter: blur(12px);
-    }
-    .kpi-title {
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .kpi-value {
-      font-family: 'Outfit', sans-serif;
-      font-size: 1.8rem;
-      font-weight: 700;
-      color: var(--text-main);
-    }
-    .btn-wa {
-      background: #25D366;
-      color: #000;
-      font-weight: 600;
-      padding: 6px 12px;
-      border-radius: 8px;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 0.85rem;
-    }
-    .btn-wa:hover {
-      background: #1eb956;
-    }
-    .pin-modal {
-      position: fixed;
-      inset: 0;
-      background: rgba(11, 14, 20, 0.95);
-      backdrop-filter: blur(16px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
-    }
-    .pin-box {
-      width: 100%;
-      max-width: 380px;
-      padding: 32px;
-      text-align: center;
-    }
+    .admin-container { max-width: 1400px; margin: 0 auto; padding: 24px 16px; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .kpi-card { padding: 20px; border-radius: 16px; background: var(--bg-card); border: 1px solid var(--bg-card-border); backdrop-filter: blur(12px); }
+    .kpi-title { font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
+    .kpi-value { font-family: 'Outfit', sans-serif; font-size: 1.8rem; font-weight: 700; color: var(--text-main); }
+    .btn-wa { background: #25D366; color: #000; font-weight: 600; padding: 6px 12px; border-radius: 8px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; }
+    .btn-wa:hover { background: #1eb956; }
+    .pin-modal { position: fixed; inset: 0; background: rgba(11, 14, 20, 0.95); backdrop-filter: blur(16px); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+    .pin-box { width: 100%; max-width: 380px; padding: 32px; text-align: center; }
+
+    /* Cotizaciones Panel */
+    .rates-panel { margin-bottom: 24px; }
+    .rates-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .rates-card { padding: 20px; border-radius: 16px; background: var(--bg-card); border: 1px solid var(--bg-card-border); }
+    .rates-card h4 { margin: 0 0 14px; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; }
+    .rate-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-radius: 10px; margin-bottom: 6px; background: rgba(255,255,255,0.03); }
+    .rate-row.best { background: rgba(52, 211, 153, 0.12); border: 1px solid rgba(52, 211, 153, 0.3); }
+    .rate-platform { font-weight: 600; font-size: 0.95rem; }
+    .rate-price { font-family: 'Outfit', monospace; font-size: 1.1rem; font-weight: 700; }
+    .rate-badge { font-size: 0.7rem; background: var(--color-emerald); color: #000; padding: 2px 8px; border-radius: 20px; font-weight: 700; margin-left: 8px; }
+    .rates-updated { font-size: 0.75rem; color: var(--text-muted); margin-top: 8px; text-align: right; }
+
+    /* Payout Action Cards */
+    .payout-card { background: rgba(251, 191, 36, 0.08); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: 16px; padding: 20px; margin-bottom: 16px; animation: pulseGlow 2s ease-in-out infinite; }
+    @keyframes pulseGlow { 0%, 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0); } 50% { box-shadow: 0 0 20px 4px rgba(251, 191, 36, 0.15); } }
+    .payout-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+    .payout-header h4 { margin: 0; color: #fbbf24; display: flex; align-items: center; gap: 8px; }
+    .payout-details { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+    .payout-field { background: rgba(0,0,0,0.2); border-radius: 10px; padding: 12px; }
+    .payout-field .label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .payout-field .value { font-family: 'Outfit', monospace; font-size: 1rem; font-weight: 600; word-break: break-all; }
+    .payout-field .value.highlight { color: var(--color-emerald); font-size: 1.2rem; }
+    .payout-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-complete { background: var(--color-emerald); color: #000; font-weight: 700; padding: 10px 20px; border-radius: 10px; border: none; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; }
+    .btn-complete:hover { filter: brightness(1.1); }
+    .btn-refund { background: rgba(239, 68, 68, 0.15); color: #ef4444; font-weight: 600; padding: 10px 16px; border-radius: 10px; border: 1px solid rgba(239, 68, 68, 0.3); cursor: pointer; font-size: 0.85rem; }
+    .profit-badge { font-size: 0.85rem; background: rgba(52, 211, 153, 0.15); color: var(--color-emerald); padding: 4px 12px; border-radius: 20px; font-weight: 600; }
   </style>
 </head>
 <body class="dark-theme">
 
-  <!-- Background Animated Gradient Orbs -->
   <div class="bg-glow bg-glow-1"></div>
   <div class="bg-glow bg-glow-2"></div>
 
@@ -100,20 +67,20 @@
     </div>
   </div>
 
-  <!-- Header Section -->
+  <!-- Header -->
   <header class="navbar">
     <div class="container navbar-inner">
       <div class="brand">
-        <div class="brand-icon">
-          <i data-lucide="shield"></i>
-        </div>
+        <div class="brand-icon"><i data-lucide="shield"></i></div>
         <div class="brand-text">
           <span class="brand-title">NOVA<span class="highlight">FX</span> Admin</span>
           <span class="brand-subtitle">Panel de Control & Soporte de Transacciones</span>
         </div>
       </div>
-
       <div style="display: flex; gap: 12px; align-items: center;">
+        <button id="btn-toggle-sound" class="btn-secondary" onclick="toggleMuteAdmin()" style="font-size: 0.85rem;" title="Silenciar/Activar sonido">
+          <i data-lucide="volume-2"></i> Sonido ON
+        </button>
         <a href="index.html" class="btn-secondary" style="text-decoration: none; font-size: 0.85rem;">
           <i data-lucide="arrow-left"></i> Volver a la Web
         </a>
@@ -124,9 +91,30 @@
     </div>
   </header>
 
-  <!-- Admin Main Content -->
   <main class="admin-container">
-    
+
+    <!-- Real-Time Rates Panel -->
+    <div class="rates-panel glass-panel" style="padding: 20px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="margin: 0; display: flex; align-items: center; gap: 8px;"><i data-lucide="bar-chart-3"></i> Cotizaciones ARS/BRL en Tiempo Real</h3>
+        <span class="rates-updated" id="rates-updated-time">Cargando...</span>
+      </div>
+      <div class="rates-grid">
+        <div class="rates-card">
+          <h4>🇦🇷➔🇧🇷 Para COMPRAR BRL (pagás ARS)</h4>
+          <div id="rates-buy-list">
+            <div class="rate-row"><span class="rate-platform">Cargando...</span></div>
+          </div>
+        </div>
+        <div class="rates-card">
+          <h4>🇧🇷➔🇦🇷 Para VENDER BRL (recibís ARS)</h4>
+          <div id="rates-sell-list">
+            <div class="rate-row"><span class="rate-platform">Cargando...</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- KPI Summary Cards -->
     <div class="kpi-grid">
       <div class="kpi-card">
@@ -142,19 +130,19 @@
         <div class="kpi-value" style="color: var(--color-primary);" id="kpi-comision">$0.00 ARS</div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-title">Alertas / Devoluciones <i data-lucide="alert-triangle"></i></div>
-        <div class="kpi-value" style="color: #ef4444;" id="kpi-alertas">0</div>
+        <div class="kpi-title">Pagos Pendientes <i data-lucide="bell-ring"></i></div>
+        <div class="kpi-value" style="color: #fbbf24;" id="kpi-pendientes">0</div>
       </div>
     </div>
 
-    <!-- Filter & Search Controls -->
+    <!-- Filter & Search -->
     <div class="glass-panel" style="padding: 20px; margin-bottom: 24px;">
       <div style="display: flex; gap: 16px; justify-content: space-between; align-items: center; flex-wrap: wrap;">
         <div style="display: flex; gap: 8px;">
           <button class="tab-btn active" id="filter-all" onclick="setFilter('ALL')">Todas las Órdenes</button>
-          <button class="tab-btn" id="filter-review" onclick="setFilter('REVIEW')">⚠️ Requieren Atención</button>
+          <button class="tab-btn" id="filter-action" onclick="setFilter('ACTION')">🔔 Acción Requerida</button>
           <button class="tab-btn" id="filter-completed" onclick="setFilter('COMPLETED')">✅ Completadas</button>
-          <button class="tab-btn" id="filter-users" onclick="setFilter('USERS')">👥 Clientes Registrados</button>
+          <button class="tab-btn" id="filter-users" onclick="setFilter('USERS')">👥 Clientes</button>
         </div>
         <div style="display: flex; gap: 8px; align-items: center;">
           <input type="text" id="admin-search" class="glass-input-field" placeholder="Buscar por Nombre, ID, WhatsApp..." style="width: 280px;" oninput="renderAdminTable()">
@@ -163,12 +151,14 @@
       </div>
     </div>
 
-    <!-- Admin Transactions Table -->
+    <!-- Payout Action Cards Container -->
+    <div id="payout-cards-container"></div>
+
+    <!-- Transactions Table -->
     <div class="glass-panel" style="padding: 20px;">
       <h3 style="margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
         <i data-lucide="list"></i> Registro de Operaciones & Datos de Contacto
       </h3>
-
       <div class="table-responsive">
         <table class="history-table" style="width: 100%;">
           <thead>
@@ -179,13 +169,11 @@
               <th>Monto Enviado</th>
               <th>Monto Recibido</th>
               <th>Estado</th>
-              <th>Acciones de Soporte</th>
+              <th>Acciones</th>
             </tr>
           </thead>
           <tbody id="admin-tbody">
-            <tr>
-              <td colspan="7" class="text-center text-muted">Cargando datos del servidor...</td>
-            </tr>
+            <tr><td colspan="7" class="text-center text-muted">Cargando datos del servidor...</td></tr>
           </tbody>
         </table>
       </div>
@@ -194,8 +182,6 @@
   </main>
 
   <script src="admin.js"></script>
-  <script>
-    lucide.createIcons();
-  </script>
+  <script>lucide.createIcons();</script>
 </body>
 </html>

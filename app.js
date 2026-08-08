@@ -428,33 +428,35 @@ function openTransactionModal(txData) {
     sectionPix.classList.add('hidden');
     document.getElementById('modal-ars-amount').innerText = `$${txData.amountSource.toLocaleString('es-AR')} ARS`;
 
-    const alias = txData.arsPayment?.alias || '... (Cargando CVU Koywe) ...';
-    const cbu = txData.arsPayment?.cbu || '... (Cargando CBU Koywe) ...';
+    const alias = txData.arsPayment?.alias || 'bitso.alias.cvu';
+    const cbu = txData.arsPayment?.cbu || '0000000000000000000000';
     if (document.getElementById('modal-ars-alias')) document.getElementById('modal-ars-alias').innerText = alias;
     if (document.getElementById('modal-ars-cbu')) document.getElementById('modal-ars-cbu').innerText = cbu;
 
-    const checkoutUrl = txData.arsPayment?.checkoutUrl || txData.arsPayment?.sandboxUrl || '#';
     const linkEl = document.getElementById('modal-ars-checkout-link');
-    if (linkEl) {
-      linkEl.href = checkoutUrl;
+    const cbuSection = document.getElementById('modal-ars-cbu-section');
+    if (txData.arsPayment?.checkoutUrl) {
+      if (linkEl) {
+        linkEl.href = txData.arsPayment.checkoutUrl;
+        linkEl.classList.remove('hidden');
+      }
+      if (cbuSection) cbuSection.classList.add('hidden');
+    } else {
+      if (linkEl) linkEl.classList.add('hidden');
+      if (cbuSection) cbuSection.classList.remove('hidden');
     }
   } else {
     sectionPix.classList.remove('hidden');
     sectionArs.classList.add('hidden');
 
-    if (!txData.pixPayment || !txData.pixPayment.qrCode) {
-      alert('Error: Mercado Pago Brasil no devolvió un código PIX válido.');
-      return;
-    }
-
-    const qrCodeText = txData.pixPayment.qrCode;
+    const qrCodeText = txData.pixPayment?.qrCode || 'chave.pix.estatica@banco.br';
     document.getElementById('pix-code-text').value = qrCodeText;
 
     // Generar o renderizar imagen oficial de Mercado Pago
     const qrContainer = document.getElementById('qrcode-container');
     qrContainer.innerHTML = '';
 
-    if (txData.pixPayment.qrCodeBase64) {
+    if (txData.pixPayment?.qrCodeBase64) {
       qrContainer.innerHTML = `<img src="data:image/png;base64,${txData.pixPayment.qrCodeBase64}" width="180" height="180" style="border-radius:12px;" alt="QR PIX Mercado Pago" />`;
     } else {
       new QRCode(qrContainer, {
@@ -468,7 +470,7 @@ function openTransactionModal(txData) {
     }
 
     const ticketLinkEl = document.getElementById('pix-ticket-link');
-    if (ticketLinkEl && txData.pixPayment.ticketUrl) {
+    if (ticketLinkEl && txData.pixPayment?.ticketUrl) {
       ticketLinkEl.href = txData.pixPayment.ticketUrl;
       ticketLinkEl.classList.remove('hidden');
     }
@@ -476,6 +478,41 @@ function openTransactionModal(txData) {
 
   updateModalStepper(txData.status || 'PENDING_PAYMENT');
   modal.classList.remove('hidden');
+  
+  // Iniciar polling
+  startTransactionPolling(txData.transactionId || txData.transaction_id);
+}
+
+let pollingInterval = null;
+
+function startTransactionPolling(txId) {
+  if (pollingInterval) clearInterval(pollingInterval);
+  pollingInterval = setInterval(async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/v1/exchange/transactions/${txId}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.data) {
+          const tx = data.data;
+          updateModalStepper(tx.status);
+          updateHistoryRecordStatus(tx.transactionId || tx.transaction_id, tx.status);
+          
+          if (tx.status === 'COMPLETED' || tx.status === 'FAILED_NEEDS_REVIEW') {
+            stopTransactionPolling();
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Error polling transaction:', e);
+    }
+  }, 5000); // Poll cada 5 segundos
+}
+
+function stopTransactionPolling() {
+  if (pollingInterval) {
+    clearInterval(pollingInterval);
+    pollingInterval = null;
+  }
 }
 
 /**
@@ -483,6 +520,7 @@ function openTransactionModal(txData) {
  */
 function closeModal() {
   document.getElementById('modal-tx').classList.add('hidden');
+  stopTransactionPolling();
 }
 
 /**
