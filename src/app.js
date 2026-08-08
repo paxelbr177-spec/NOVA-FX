@@ -7,6 +7,8 @@ import { initDatabase } from './config/database.js';
 import { logger } from './utils/logger.js';
 import exchangeRoutes from './routes/exchangeRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
+import webhookRoutes from './routes/webhookRoutes.js';
+import ratesRoutes from './routes/ratesRoutes.js';
 import { notFoundHandler, globalErrorHandler } from './middlewares/errorHandler.js';
 
 const app = express();
@@ -30,6 +32,8 @@ app.use(express.json({
 // Montar rutas
 app.use('/api/v1/exchange', exchangeRoutes);
 app.use('/api/v1/admin', adminRoutes);
+app.use('/api/v1/webhooks', webhookRoutes);
+app.use('/api/v1/rates', ratesRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

@@ -434,11 +434,17 @@ function openTransactionModal(txData) {
     if (document.getElementById('modal-ars-cbu')) document.getElementById('modal-ars-cbu').innerText = cbu;
 
     const linkEl = document.getElementById('modal-ars-checkout-link');
-    if (linkEl) {
-      linkEl.classList.add('hidden'); // Hide Koywe checkout link
-    }
     const cbuSection = document.getElementById('modal-ars-cbu-section');
-    if (cbuSection) cbuSection.classList.remove('hidden'); // Show static details
+    if (txData.arsPayment?.checkoutUrl) {
+      if (linkEl) {
+        linkEl.href = txData.arsPayment.checkoutUrl;
+        linkEl.classList.remove('hidden');
+      }
+      if (cbuSection) cbuSection.classList.add('hidden');
+    } else {
+      if (linkEl) linkEl.classList.add('hidden');
+      if (cbuSection) cbuSection.classList.remove('hidden');
+    }
   } else {
     sectionPix.classList.remove('hidden');
     sectionArs.classList.add('hidden');
@@ -450,7 +456,7 @@ function openTransactionModal(txData) {
     const qrContainer = document.getElementById('qrcode-container');
     qrContainer.innerHTML = '';
 
-    if (txData.pixPayment.qrCodeBase64) {
+    if (txData.pixPayment?.qrCodeBase64) {
       qrContainer.innerHTML = `<img src="data:image/png;base64,${txData.pixPayment.qrCodeBase64}" width="180" height="180" style="border-radius:12px;" alt="QR PIX Mercado Pago" />`;
     } else {
       new QRCode(qrContainer, {
@@ -464,7 +470,7 @@ function openTransactionModal(txData) {
     }
 
     const ticketLinkEl = document.getElementById('pix-ticket-link');
-    if (ticketLinkEl && txData.pixPayment.ticketUrl) {
+    if (ticketLinkEl && txData.pixPayment?.ticketUrl) {
       ticketLinkEl.href = txData.pixPayment.ticketUrl;
       ticketLinkEl.classList.remove('hidden');
     }
@@ -474,7 +480,7 @@ function openTransactionModal(txData) {
   modal.classList.remove('hidden');
   
   // Iniciar polling
-  startTransactionPolling(txData.transactionId);
+  startTransactionPolling(txData.transactionId || txData.transaction_id);
 }
 
 let pollingInterval = null;
@@ -489,7 +495,7 @@ function startTransactionPolling(txId) {
         if (data.success && data.data) {
           const tx = data.data;
           updateModalStepper(tx.status);
-          updateHistoryRecordStatus(tx.transaction_id, tx.status);
+          updateHistoryRecordStatus(tx.transactionId || tx.transaction_id, tx.status);
           
           if (tx.status === 'COMPLETED' || tx.status === 'FAILED_NEEDS_REVIEW') {
             stopTransactionPolling();
