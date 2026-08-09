@@ -473,19 +473,27 @@ async function submitExchangeOrder() {
   if (state.currentFlow === 'ARS_TO_BRL') {
     const pixKey = document.getElementById('pix-key-value').value.trim();
     const pixKeyType = document.getElementById('pix-key-type').value;
-    if (!pixKey) {
-      alert('Por favor ingrese la Chave PIX de destino en Brasil.');
+    if (!pixKey || pixKey.length < 4) {
+      alert('⚠️ Por favor ingrese una Chave PIX válida de destino en Brasil.');
       return;
     }
+
+    const confirmPix = confirm(`⚠️ VERIFICACIÓN DE DATOS DE DESTINO:\n\nVas a recibir Reales en la Chave PIX (${pixKeyType}):\n"${pixKey}"\n\n¿Confirmás que la clave está 100% correcta?\n(NOVA FX no se responsabiliza por datos mal colocados por el usuario).`);
+    if (!confirmPix) return;
+
     payload.clientPixKey = pixKey;
     payload.clientPixKeyType = pixKeyType;
   } else {
     const cbu = document.getElementById('client-cbu').value.trim();
     const email = document.getElementById('payer-email')?.value.trim() || clientEmail;
-    if (!cbu || cbu.length < 15) {
-      alert('Por favor ingrese un CBU/CVU válido de 22 dígitos en Argentina.');
+    if (!cbu || cbu.length !== 22 || !/^\d+$/.test(cbu)) {
+      alert('⚠️ Por favor ingrese un CBU/CVU de Argentina válido de exactamente 22 dígitos numéricos.');
       return;
     }
+
+    const confirmCbu = confirm(`⚠️ VERIFICACIÓN DE DATOS DE DESTINO:\n\nVas a recibir Pesos en el CBU/CVU:\n"${cbu}"\n\n¿Confirmás que los 22 dígitos están 100% correctos?\n(NOVA FX no se responsabiliza por datos mal colocados por el usuario).`);
+    if (!confirmCbu) return;
+
     payload.clientCbuCvu = cbu;
     payload.payerEmail = email || 'cliente@brasil.com';
   }
