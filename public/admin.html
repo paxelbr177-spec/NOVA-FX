@@ -77,7 +77,13 @@
           <span class="brand-subtitle">Panel de Control & Soporte de Transacciones</span>
         </div>
       </div>
-      <div style="display: flex; gap: 12px; align-items: center;">
+      <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+        <div id="admin-operating-status" style="font-size: 0.85rem; padding: 6px 12px; border-radius: 8px; background: rgba(52, 211, 153, 0.15); border: 1px solid rgba(52, 211, 153, 0.3); color: #34d399; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+          🟢 <span>08:00 - 23:00 (Abierto)</span>
+        </div>
+        <button id="btn-toggle-hours" class="btn-secondary" onclick="toggleAdminOperatingHours()" style="font-size: 0.85rem;" title="Cambiar Horario Abierto / Cerrado / Automático">
+          ⚙️ Horario: AUTO
+        </button>
         <button id="btn-toggle-sound" class="btn-secondary" onclick="toggleMuteAdmin()" style="font-size: 0.85rem;" title="Silenciar/Activar sonido">
           <i data-lucide="volume-2"></i> Sonido ON
         </button>

@@ -1,6 +1,14 @@
 import exchangeEngine from '../services/exchangeEngine.js';
 import Transaction from '../models/Transaction.js';
 import User from '../models/User.js';
+import { isSystemOpen, getOperatingStatus } from '../utils/operatingHours.js';
+
+export const getOperatingStatusHandler = (req, res) => {
+    return res.status(200).json({
+        success: true,
+        data: getOperatingStatus()
+    });
+};
 
 export const getQuote = async (req, res, next) => {
     try {
@@ -13,7 +21,15 @@ export const getQuote = async (req, res, next) => {
             return res.status(400).json({ success: false, error: 'El monto debe ser un número mayor a 0.' });
         }
         const quoteResult = await exchangeEngine.getQuote(type, numAmount);
-        return res.status(200).json({ success: true, data: quoteResult });
+        const operatingStatus = getOperatingStatus();
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                ...quoteResult,
+                operatingStatus
+            }
+        });
     } catch (error) {
         next(error);
     }
@@ -21,6 +37,17 @@ export const getQuote = async (req, res, next) => {
 
 export const createTransaction = async (req, res, next) => {
     try {
+        // Verificar si el servicio está en horario de atención (08:00 a 23:00 hs)
+        if (!isSystemOpen()) {
+            const statusInfo = getOperatingStatus();
+            return res.status(403).json({
+                success: false,
+                isClosed: true,
+                error: 'Servicio cerrado fuera del horario de atención (08:00 a 23:00 hs). Las transacciones se reanudarán a las 08:00 AM.',
+                operatingStatus: statusInfo
+            });
+        }
+
         const { type, amount, clientPixKey, clientPixKeyType, clientCbuCvu, payerEmail, clientName, clientEmail, clientPhone } = req.body;
         if (!type || (type !== 'ARS_TO_BRL' && type !== 'BRL_TO_ARS')) {
             return res.status(400).json({ success: false, error: 'Tipo de cambio inválido.' });

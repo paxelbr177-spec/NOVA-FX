@@ -183,6 +183,9 @@ async function loadAdminData() {
       if (statsJson.success) {
         adminState.stats = statsJson.data;
         renderKPIs(statsJson.data);
+        if (statsJson.data.operatingStatus) {
+          renderOperatingStatusUI(statsJson.data.operatingStatus);
+        }
       }
     }
 
@@ -467,4 +470,68 @@ function copyToClipboard(text) {
     document.body.removeChild(ta);
     alert(`Copiado: ${text}`);
   });
+}
+
+function renderOperatingStatusUI(statusInfo) {
+  if (!statusInfo) return;
+  const statusEl = document.getElementById('admin-operating-status');
+  const btnEl = document.getElementById('btn-toggle-hours');
+
+  if (statusEl) {
+    if (statusInfo.isOpen) {
+      statusEl.style.background = 'rgba(52, 211, 153, 0.15)';
+      statusEl.style.borderColor = 'rgba(52, 211, 153, 0.3)';
+      statusEl.style.color = '#34d399';
+      statusEl.innerHTML = `🟢 <span>Abierto (${statusInfo.operatingHours})</span>`;
+    } else {
+      statusEl.style.background = 'rgba(239, 68, 68, 0.15)';
+      statusEl.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+      statusEl.style.color = '#ef4444';
+      statusEl.innerHTML = `🔴 <span>Cerrado (${statusInfo.currentTime})</span>`;
+    }
+  }
+
+  if (btnEl) {
+    const override = statusInfo.manualOverride;
+    if (override === 'OPEN') {
+      btnEl.innerText = '⚙️ Horario: FORZADO ABIERTO';
+    } else if (override === 'CLOSED') {
+      btnEl.innerText = '⚙️ Horario: FORZADO CERRADO';
+    } else {
+      btnEl.innerText = '⚙️ Horario: AUTO (08-23h)';
+    }
+  }
+}
+
+async function toggleAdminOperatingHours() {
+  const current = adminState.stats?.operatingStatus?.manualOverride;
+  let nextStatus;
+  if (current === null || current === undefined) {
+    nextStatus = 'CLOSED'; // Si estaba en AUTO, pausar manualmente
+  } else if (current === 'CLOSED') {
+    nextStatus = 'OPEN';   // Si estaba CERRADO, forzar abrir
+  } else {
+    nextStatus = 'AUTO';   // Si estaba ABIERTO, volver a AUTO
+  }
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/v1/admin/operating-status`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-admin-pin': adminState.pin
+      },
+      body: JSON.stringify({ status: nextStatus })
+    });
+    if (res.ok) {
+      const json = await res.json();
+      if (json.success && json.data) {
+        if (adminState.stats) adminState.stats.operatingStatus = json.data;
+        renderOperatingStatusUI(json.data);
+        alert(`Estado del servicio actualizado: ${json.data.isOpen ? 'ABIERTO 🟢' : 'CERRADO 🔴'} (${json.data.manualOverride || 'AUTOMÁTICO'})`);
+      }
+    }
+  } catch (e) {
+    alert('Error al cambiar el horario operativo.');
+  }
 }

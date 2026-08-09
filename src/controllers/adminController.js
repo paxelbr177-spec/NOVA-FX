@@ -1,6 +1,7 @@
 import Transaction from '../models/Transaction.js';
 import User from '../models/User.js';
 import { logger } from '../utils/logger.js';
+import { getOperatingStatus, setManualOverride } from '../utils/operatingHours.js';
 
 /**
  * PIN de seguridad del Administrador
@@ -16,6 +17,20 @@ export const verifyAdminPin = (req, res, next) => {
         return res.status(401).json({ success: false, error: 'PIN de Administrador inválido o no proporcionado.' });
     }
     next();
+};
+
+/**
+ * Cambia manualmente el estado operativo (abierto/cerrado/automático)
+ */
+export const toggleOperatingStatus = async (req, res, next) => {
+    try {
+        const { status } = req.body;
+        const newStatus = setManualOverride(status);
+        logger.info(`[AdminController] Estado operativo modificado manualmente a: ${status}`);
+        return res.status(200).json({ success: true, data: newStatus });
+    } catch (error) {
+        next(error);
+    }
 };
 
 /**
@@ -67,7 +82,8 @@ export const getAdminStats = async (req, res, next) => {
                 completedCount,
                 pendingCount,
                 needsReviewCount,
-                refundedCount
+                refundedCount,
+                operatingStatus: getOperatingStatus()
             }
         });
     } catch (error) {

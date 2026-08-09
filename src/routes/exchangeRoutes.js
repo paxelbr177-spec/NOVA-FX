@@ -1,7 +1,10 @@
 import { Router } from 'express';
-import { getQuote, createTransaction, getTransactionStatus, registerUser } from '../controllers/exchangeController.js';
+import { getQuote, createTransaction, getTransactionStatus, registerUser, getOperatingStatusHandler } from '../controllers/exchangeController.js';
 
 const router = Router();
+
+// GET /api/v1/exchange/operating-status -> getOperatingStatusHandler
+router.get('/operating-status', getOperatingStatusHandler);
 
 // GET /api/v1/exchange/quote -> getQuote
 router.get('/quote', getQuote);
