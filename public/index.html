@@ -23,20 +23,19 @@
 </head>
 <body class="dark-theme">
 
-  <!-- Background Animated Gradient Orbs -->
+  <!-- Background Animated Gradient Orbs & Brand Watermark -->
   <div class="bg-glow bg-glow-1"></div>
   <div class="bg-glow bg-glow-2"></div>
   <div class="bg-glow bg-glow-3"></div>
+  <div style="position: fixed; top: 20%; left: 50%; transform: translateX(-50%); opacity: 0.04; pointer-events: none; z-index: -1;">
+    <img src="logo_transparent.png" alt="NOVA FX Watermark" style="width: 750px; max-width: 90vw; mix-blend-mode: screen; filter: blur(1px);" />
+  </div>
 
   <!-- Header Section -->
   <header class="navbar">
     <div class="container navbar-inner">
       <div class="brand" style="display:flex; align-items:center; gap:12px;">
-        <img src="logo.png" alt="NOVA FX Logo" style="height: 46px; border-radius: 10px; box-shadow: 0 0 16px rgba(59, 130, 246, 0.4);" />
-        <div class="brand-text">
-          <span class="brand-title">NOVA<span class="highlight">FX</span></span>
-          <span class="brand-subtitle">Cross-Border FX & Liquidity Engine</span>
-        </div>
+        <img src="logo_transparent.png" alt="NOVA FX Logo" style="height: 64px; mix-blend-mode: screen; filter: drop-shadow(0 0 24px rgba(59, 130, 246, 0.5)); object-fit: contain;" />
       </div>
 
       <!-- Live System Badges & Account -->
