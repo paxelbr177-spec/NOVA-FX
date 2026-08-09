@@ -121,6 +121,7 @@ async function saveClientProfile() {
   localStorage.setItem('novaFxClient', JSON.stringify(user));
   loadClientProfile();
   closeClientLoginModal();
+  alert('✅ Registro exitoso. Tus datos fueron guardados correctamente. Ya podés realizar tu cambio.');
 
   try {
     await fetch(`${API_BASE_URL}/api/v1/exchange/users`, {
@@ -442,17 +443,24 @@ function calculateLocalFallbackQuote(amount) {
  * Envía la solicitud de transacción al backend
  */
 async function submitExchangeOrder() {
+  // Verificar si el usuario está registrado en la sesión local
+  if (!state.user || !state.user.name || !state.user.phone || !state.user.email) {
+    alert('📋 Registro Requerido: Para operar debes registrar tus datos de contacto básicos (Nombre, WhatsApp y Correo). No pedimos DNI ni fotos.');
+    openClientLoginModal();
+    return;
+  }
+
   const amount = parseFloat(document.getElementById('amount-source').value) || 0;
   const { limit: minLimit, currencyStr: minCurrencyStr } = getDynamicMinLimit();
 
   if (amount < minLimit) {
-    alert(`El monto mínimo de cambio es ${minCurrencyStr} (~1 USD).`);
+    alert(`El monto mínimo de cambio es ${minCurrencyStr}.`);
     return;
   }
 
-  const clientName = document.getElementById('client-name')?.value.trim() || '';
-  const clientPhone = document.getElementById('client-phone')?.value.trim() || '';
-  const clientEmail = document.getElementById('client-email-input')?.value.trim() || '';
+  const clientName = state.user.name;
+  const clientPhone = state.user.phone;
+  const clientEmail = state.user.email;
 
   const payload = {
     type: state.currentFlow,
