@@ -114,7 +114,7 @@ export const updateAdminTransactionStatus = async (req, res, next) => {
         const { transactionId } = req.params;
         const { status, note } = req.body;
 
-        const allowedStatuses = ['COMPLETED', 'FAILED_NEEDS_REVIEW', 'REFUNDED', 'RESOLVED', 'PENDING_PAYMENT'];
+        const allowedStatuses = ['COMPLETED', 'PAYMENT_RECEIVED', 'FAILED_NEEDS_REVIEW', 'REFUNDED', 'RESOLVED', 'PENDING_PAYMENT'];
         if (!allowedStatuses.includes(status)) {
             return res.status(400).json({ success: false, error: 'Estado no válido.' });
         }

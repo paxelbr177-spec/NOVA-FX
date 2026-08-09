@@ -430,7 +430,8 @@ function renderAdminTable() {
       <td>
         <div style="display:flex; gap:6px; flex-wrap:wrap;">
           ${cleanPhone ? `<a href="${waUrl}" target="_blank" class="btn-wa">📱 WA</a>` : ''}
-          <button class="btn-secondary btn-sm" onclick="changeStatus('${tx.transaction_id}', 'COMPLETED')" style="padding:4px 8px; font-size:0.75rem;">✅ Completar</button>
+          ${tx.status === 'PENDING_PAYMENT' ? `<button class="btn-primary-glow btn-sm" onclick="changeStatus('${tx.transaction_id}', 'PAYMENT_RECEIVED')" style="padding:4px 10px; font-size:0.75rem; background:linear-gradient(135deg, #3b82f6, #1d4ed8); border:none; color:#fff; font-weight:700; border-radius:6px; cursor:pointer;">💳 Aprobar Pago</button>` : ''}
+          <button class="btn-secondary btn-sm" onclick="changeStatus('${tx.transaction_id}', 'COMPLETED')" style="padding:4px 8px; font-size:0.75rem; background:rgba(52, 211, 153, 0.15); border:1px solid rgba(52, 211, 153, 0.3); color:#34d399;">✅ Completar</button>
           <button class="btn-secondary btn-sm" onclick="changeStatus('${tx.transaction_id}', 'REFUNDED')" style="padding:4px 8px; font-size:0.75rem;">↩ Devolver</button>
         </div>
       </td>
