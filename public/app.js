@@ -1,5 +1,5 @@
-// Configuración de la URL del Backend (Utilizado cuando el Frontend se aloja en GitHub Pages / Vercel)
-const API_BASE_URL = window.API_BASE_URL || 'https://nova-fx.onrender.com';
+// Configuración de la URL del Backend
+const API_BASE_URL = window.API_BASE_URL || (window.location.origin.includes('github.io') ? 'https://nova-fx.onrender.com' : '');
 
 // Estado de la aplicación frontend
 const state = {
