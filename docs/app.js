@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadClientProfile();
   fetchLiveTickerRates();
   recalculateQuote();
-  setInterval(fetchLiveTickerRates, 10000); // Actualizar cotización cada 10s
+  setInterval(fetchLiveTickerRates, 30000); // Actualizar cotización cada 30s (sincronizado con cache CriptoYa)
 });
 
 function loadClientProfile() {
@@ -134,43 +134,120 @@ async function saveClientProfile() {
 }
 
 /**
- * Consulta las cotizaciones en tiempo real desde el backend
+ * Consulta las cotizaciones en tiempo real desde CriptoYa via nuestro backend
  */
 async function fetchLiveTickerRates() {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/v1/rates/real`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && data.data && data.data.bestBuy?.price) {
+        updateTickerFromRates(data.data);
+        return;
+      }
+    }
+  } catch (e) {
+    console.warn('[Frontend] Error obteniendo cotizaciones:', e);
+  }
+  // Fallback: intentar con el quote endpoint
   try {
     const res = await fetch(`${API_BASE_URL}/api/v1/exchange/quote?type=ARS_TO_BRL&amount=100000`);
     if (res.ok) {
       const data = await res.json();
       if (data.success && data.data) {
-        const rates = data.data.rateSnapshot;
-        updateTickerUI(rates.askUsdtArs, rates.bidUsdtBrl);
+        updateTickerFromQuote(data.data);
         return;
       }
     }
   } catch (e) {
     console.warn('[Frontend] Usando cotización de respaldo para ticker');
   }
-  updateTickerUI(fallbackRates.usdtArs, fallbackRates.usdtBrl);
+  updateTickerFallback();
 }
 
 /**
- * Actualiza la marquesina de precios y ratios
+ * Actualiza la marquesina con precios reales de CriptoYa
  */
-function updateTickerUI(usdtArs, usdtBrl) {
-  state.liveUsdtArs = usdtArs || fallbackRates.usdtArs;
-  state.liveUsdtBrl = usdtBrl || fallbackRates.usdtBrl;
+function updateTickerFromRates(ratesData) {
+  const margin = 0.02;
+  const bestBuy = ratesData.bestBuy;
+  const bestSell = ratesData.bestSell;
 
-  document.getElementById('ticker-usdt-ars').innerText = `${state.liveUsdtArs.toLocaleString('es-AR', { minimumFractionDigits: 2 })} ARS`;
-  document.getElementById('ticker-usdt-brl').innerText = `${state.liveUsdtBrl.toFixed(4)} BRL`;
+  // Tasa al cliente para COMPRAR BRL (ARS→BRL): costo + 2%
+  const clientBuyRate = bestBuy.price * (1 + margin);
+  // Tasa al cliente para VENDER BRL (BRL→ARS): venta - 2%
+  const clientSellRate = bestSell.price * (1 - margin);
 
-  const crossRate = state.liveUsdtArs / state.liveUsdtBrl;
-  document.getElementById('ticker-cross-rate').innerText = `1 BRL ≈ ${crossRate.toFixed(2)} ARS`;
+  // Guardar en state para cálculos
+  state.liveBuyRate = clientBuyRate;
+  state.liveSellRate = clientSellRate;
+  state.liveRatesData = ratesData;
 
-  // Actualizar inmediatamente las alertas y validaciones de mínimo dinámico
-  const { limit: minLimit, currencyStr: minCurrencyStr } = getDynamicMinLimit();
-  const hintEl = document.getElementById('min-amount-hint');
-  if (hintEl) hintEl.innerText = `Mínimo: ${minCurrencyStr} (~1 USD)`;
+  const platformNames = {
+    satoshitango: 'Satoshi Tango',
+    belo: 'Belo',
+    fiwind: 'Fiwind'
+  };
+
+  // Actualizar ticker: Comprar BRL
+  const elBuy = document.getElementById('ticker-buy-brl');
+  if (elBuy) elBuy.innerText = `1 BRL = ${clientBuyRate.toFixed(2)} ARS`;
+  const elBuyPlat = document.getElementById('ticker-buy-platform');
+  if (elBuyPlat) elBuyPlat.innerText = `⭐ Vía ${platformNames[bestBuy.platform] || bestBuy.platform}`;
+
+  // Actualizar ticker: Vender BRL
+  const elSell = document.getElementById('ticker-sell-brl');
+  if (elSell) elSell.innerText = `1 BRL = ${clientSellRate.toFixed(2)} ARS`;
+  const elSellPlat = document.getElementById('ticker-sell-platform');
+  if (elSellPlat) elSellPlat.innerText = `⭐ Vía ${platformNames[bestSell.platform] || bestSell.platform}`;
+
+  // Tasa cruzada activa según flujo seleccionado
+  const crossEl = document.getElementById('ticker-cross-rate');
+  if (crossEl) {
+    if (state.currentFlow === 'ARS_TO_BRL') {
+      crossEl.innerText = `1 BRL = ${clientBuyRate.toFixed(2)} ARS`;
+    } else {
+      crossEl.innerText = `1 BRL = ${clientSellRate.toFixed(2)} ARS`;
+    }
+  }
+
+  // Timestamp
+  const updEl = document.getElementById('ticker-updated');
+  if (updEl) updEl.innerText = `Actualizado: ${new Date().toLocaleTimeString('es-AR')}`;
+
+  // Recalcular cotización si hay monto ingresado
+  const amountEl = document.getElementById('amount-source');
+  if (amountEl && parseFloat(amountEl.value) > 0) {
+    recalculateQuote();
+  }
 }
+
+/**
+ * Fallback: actualiza ticker desde el quote endpoint
+ */
+function updateTickerFromQuote(quoteData) {
+  const clientRate = quoteData.clientRate || (quoteData.rateSnapshot?.clientRate);
+  if (clientRate) {
+    state.liveBuyRate = clientRate;
+    const crossEl = document.getElementById('ticker-cross-rate');
+    if (crossEl) crossEl.innerText = `1 BRL ≈ ${clientRate.toFixed(2)} ARS`;
+  }
+  const updEl = document.getElementById('ticker-updated');
+  if (updEl) updEl.innerText = `Actualizado: ${new Date().toLocaleTimeString('es-AR')}`;
+}
+
+/**
+ * Fallback estático
+ */
+function updateTickerFallback() {
+  const crossEl = document.getElementById('ticker-cross-rate');
+  if (crossEl) crossEl.innerText = `1 BRL ≈ ${(fallbackRates.usdtArs / fallbackRates.usdtBrl).toFixed(2)} ARS`;
+  const updEl = document.getElementById('ticker-updated');
+  if (updEl) updEl.innerText = 'Modo offline';
+}
+
+
+
 
 /**
  * Cambia el flujo seleccionado (ARS -> BRL o BRL -> ARS)
@@ -292,21 +369,38 @@ async function recalculateQuote() {
  */
 function updateQuoteBreakdown(quote) {
   document.getElementById('amount-target').value = quote.amountTarget.toLocaleString('es-AR', { minimumFractionDigits: 2 });
-  document.getElementById('breakdown-usdt').innerText = `~${quote.amountUsdtEstimate.toFixed(2)} USDT`;
-  
+
+  // Mostrar USDT estimate si existe, sino ocultar
+  const usdtEl = document.getElementById('breakdown-usdt');
+  if (usdtEl) {
+    usdtEl.innerText = quote.amountUsdtEstimate
+      ? `~${quote.amountUsdtEstimate.toFixed(2)} USDT`
+      : '';
+  }
+
+  const clientRate = quote.clientRate || quote.rateSnapshot?.clientRate;
+  const platformNames = { satoshitango: 'Satoshi Tango', belo: 'Belo', fiwind: 'Fiwind', binance_cross: 'Binance' };
+
   if (state.currentFlow === 'ARS_TO_BRL') {
-    const spotRate = quote.rateSnapshot.askUsdtArs / quote.rateSnapshot.bidUsdtBrl;
-    document.getElementById('breakdown-spot-rate').innerText = `1 BRL = ${spotRate.toFixed(2)} ARS`;
-    const grossBrl = quote.amountUsdtEstimate * quote.rateSnapshot.bidUsdtBrl;
-    const marginBrl = grossBrl * quote.marginApplied;
-    document.getElementById('breakdown-margin').innerText = `-${marginBrl.toFixed(2)} BRL`;
+    const rateLabel = clientRate ? `1 BRL = ${clientRate.toFixed(2)} ARS` : '1 BRL ≈ ... ARS';
+    document.getElementById('breakdown-spot-rate').innerText = rateLabel;
+    const platform = quote.rateSnapshot?.bestBuyPlatform;
+    if (platform) {
+      document.getElementById('breakdown-spot-rate').innerText += ` (${platformNames[platform] || platform})`;
+    }
+    const marginAmount = (quote.amountSource / (clientRate / (1 + quote.marginApplied))) - quote.amountTarget;
+    document.getElementById('breakdown-margin').innerText = `-${Math.abs(marginAmount).toFixed(2)} BRL (2%)`;
     document.getElementById('breakdown-final-amount').innerText = `${quote.amountTarget.toFixed(2)} BRL`;
   } else {
-    const spotRate = quote.rateSnapshot.askUsdtArs / quote.rateSnapshot.askUsdtBrl;
-    document.getElementById('breakdown-spot-rate').innerText = `1 BRL = ${spotRate.toFixed(2)} ARS`;
-    const grossArs = quote.amountUsdtEstimate * quote.rateSnapshot.askUsdtArs;
-    const marginArs = grossArs * quote.marginApplied;
-    document.getElementById('breakdown-margin').innerText = `-${marginArs.toFixed(2)} ARS`;
+    const rateLabel = clientRate ? `1 BRL = ${clientRate.toFixed(2)} ARS` : '1 BRL ≈ ... ARS';
+    document.getElementById('breakdown-spot-rate').innerText = rateLabel;
+    const platform = quote.rateSnapshot?.bestSellPlatform;
+    if (platform) {
+      document.getElementById('breakdown-spot-rate').innerText += ` (${platformNames[platform] || platform})`;
+    }
+    const grossArs = quote.amountSource * (clientRate / (1 - quote.marginApplied));
+    const marginArs = grossArs - quote.amountTarget;
+    document.getElementById('breakdown-margin').innerText = `-${Math.abs(marginArs).toFixed(2)} ARS (2%)`;
     document.getElementById('breakdown-final-amount').innerText = `${quote.amountTarget.toLocaleString('es-AR', { minimumFractionDigits: 2 })} ARS`;
   }
 }
