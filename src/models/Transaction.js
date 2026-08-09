@@ -7,13 +7,14 @@ import supabaseClient from '../config/supabaseClient.js';
 const memoryStore = new Map();
 
 class Transaction {
-    static async create({ transactionId, type, amountSource, currencySource, currencyTarget, clientPixKey, clientPixKeyType, clientCbuCvu, clientName, clientEmail, clientPhone, fxRateSnapshot, marginApplied }) {
+    static async create({ transactionId, type, amountSource, currencySource, amountTarget, currencyTarget, clientPixKey, clientPixKeyType, clientCbuCvu, clientName, clientEmail, clientPhone, fxRateSnapshot, marginApplied }) {
         const fallbackObj = {
             transaction_id: transactionId,
             type,
             status: 'PENDING_PAYMENT',
             amount_source: amountSource,
             currency_source: currencySource,
+            amount_target: amountTarget,
             currency_target: currencyTarget,
             client_pix_key: clientPixKey,
             client_pix_key_type: clientPixKeyType,
@@ -36,16 +37,16 @@ class Transaction {
 
         const sql = `
             INSERT INTO transactions (
-                transaction_id, type, status, amount_source, currency_source, 
+                transaction_id, type, status, amount_source, currency_source, amount_target,
                 currency_target, client_pix_key, client_pix_key_type, client_cbu_cvu, 
                 client_name, client_email, client_phone,
                 fx_rate_snapshot, margin_applied, created_at, updated_at
             ) VALUES (
-                $1, $2, 'PENDING_PAYMENT', $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), NOW()
+                $1, $2, 'PENDING_PAYMENT', $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW(), NOW()
             ) RETURNING *;
         `;
         const values = [
-            transactionId, type, amountSource, currencySource, currencyTarget,
+            transactionId, type, amountSource, currencySource, amountTarget, currencyTarget,
             clientPixKey, clientPixKeyType, clientCbuCvu,
             clientName || null, clientEmail || null, clientPhone || null,
             JSON.stringify(fxRateSnapshot), marginApplied

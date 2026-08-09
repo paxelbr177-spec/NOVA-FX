@@ -420,12 +420,26 @@ function renderAdminTable() {
     else if (tx.status === 'PAYMENT_RECEIVED') statusBadgeClass = 'badge-processing';
     else if (tx.status === 'REFUNDED' || tx.status === 'RESOLVED') statusBadgeClass = 'badge-completed';
 
+    const isArsToBrl = tx.type === 'ARS_TO_BRL';
+    const amountSrc = parseFloat(tx.amount_source || 0);
+    const amountTgt = parseFloat(tx.amount_target || 0);
+    const destVal = isArsToBrl ? (tx.client_pix_key || '') : (tx.client_cbu_cvu || '');
+    const destType = isArsToBrl ? `PIX (${tx.client_pix_key_type || ''})` : 'CBU/CVU';
+
+    let profitBadge = '';
+    if (amountSrc > 0) {
+      const estProfitArs = amountSrc * parseFloat(tx.margin_applied || 0.02);
+      profitBadge = `<br><span style="font-size:0.75rem; color:#34d399; font-weight:600;">💰 +$${estProfitArs.toFixed(0)} ARS ganancia (2%)</span>`;
+    }
+
+    const copyDestBtn = destVal ? `<br><span style="font-size:0.75rem; color:var(--text-muted);">${destType}: <code>${destVal}</code> <button onclick="copyToClipboard('${destVal}')" style="background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); color:#fff; padding:1px 6px; border-radius:4px; font-size:0.68rem; cursor:pointer;">📋 Copiar</button></span>` : '';
+
     return `<tr>
       <td><strong><code>${tx.transaction_id.substring(0, 14)}...</code></strong><br><span style="font-size:0.75rem; color:var(--text-muted);">${timeStr}</span></td>
-      <td><span class="badge-type">${tx.type === 'ARS_TO_BRL' ? 'ARS ➔ BRL' : 'BRL ➔ ARS'}</span></td>
+      <td><span class="badge-type">${isArsToBrl ? 'ARS ➔ BRL' : 'BRL ➔ ARS'}</span></td>
       <td><strong>${name}</strong><br><span style="font-size:0.8rem; color:var(--text-muted);">${phone ? '📱 ' + phone : ''} ${email ? '📧 ' + email : ''}</span></td>
-      <td><strong>${tx.amount_source} ${tx.currency_source}</strong></td>
-      <td><strong class="text-emerald">${tx.amount_target || '—'} ${tx.currency_target}</strong></td>
+      <td><strong>${amountSrc.toLocaleString(isArsToBrl ? 'es-AR' : 'pt-BR')} ${tx.currency_source}</strong>${profitBadge}</td>
+      <td><strong class="text-emerald">${amountTgt ? (isArsToBrl ? 'R$ ' + amountTgt.toFixed(2) : '$' + amountTgt.toLocaleString('es-AR', {minimumFractionDigits:2})) : '—'} ${tx.currency_target}</strong>${copyDestBtn}</td>
       <td><span class="status-badge ${statusBadgeClass}">${tx.status}</span></td>
       <td>
         <div style="display:flex; gap:6px; flex-wrap:wrap;">
