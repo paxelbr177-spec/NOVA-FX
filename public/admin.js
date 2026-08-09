@@ -9,6 +9,7 @@ let adminState = {
   users: [],
   currentFilter: 'ALL',
   rates: null,
+  knownTxIds: new Set(),
   knownPaymentReceivedIds: new Set(),
   isMuted: false,
   audioCtx: null
@@ -194,7 +195,7 @@ async function loadAdminData() {
       if (txJson.success) {
         const oldTxs = adminState.transactions;
         adminState.transactions = txJson.data;
-        checkForNewPayments(oldTxs, txJson.data);
+        checkForNewEvents(oldTxs, txJson.data);
       }
     }
 
@@ -212,18 +213,42 @@ async function loadAdminData() {
   }
 }
 
-function checkForNewPayments(oldTxs, newTxs) {
-  const oldIds = new Set(oldTxs.filter(t => t.status === 'PAYMENT_RECEIVED').map(t => t.transaction_id));
-  const newPayments = newTxs.filter(t => t.status === 'PAYMENT_RECEIVED' && !oldIds.has(t.transaction_id) && !adminState.knownPaymentReceivedIds.has(t.transaction_id));
+function checkForNewEvents(oldTxs, newTxs) {
+  if (!oldTxs || oldTxs.length === 0) {
+    newTxs.forEach(t => {
+      adminState.knownTxIds.add(t.transaction_id);
+      if (t.status === 'PAYMENT_RECEIVED') adminState.knownPaymentReceivedIds.add(t.transaction_id);
+    });
+    return;
+  }
+
+  const oldIds = new Set(oldTxs.map(t => t.transaction_id));
+  const oldPaymentReceivedIds = new Set(oldTxs.filter(t => t.status === 'PAYMENT_RECEIVED').map(t => t.transaction_id));
+
+  // 1. Detectar órdenes NUEVAS (cuando el cliente genera una transacción PENDING_PAYMENT)
+  const brandNewTxs = newTxs.filter(t => !oldIds.has(t.transaction_id) && !adminState.knownTxIds.has(t.transaction_id));
+  
+  if (brandNewTxs.length > 0) {
+    brandNewTxs.forEach(t => adminState.knownTxIds.add(t.transaction_id));
+    const firstTx = brandNewTxs[0];
+    const typeStr = firstTx.type === 'ARS_TO_BRL' ? 'ARS ➔ BRL' : 'BRL ➔ ARS';
+    playAlertSound(6);
+    showBrowserNotification(
+      '🚨 ¡NUEVA ORDEN INICIADA!',
+      `Orden ${typeStr} de ${firstTx.client_name || 'Cliente'} por ${firstTx.amount_source} ${firstTx.currency_source}.`
+    );
+  }
+
+  // 2. Detectar pagos CONFIRMADOS por Mercado Pago (PAYMENT_RECEIVED)
+  const newPayments = newTxs.filter(t => t.status === 'PAYMENT_RECEIVED' && !oldPaymentReceivedIds.has(t.transaction_id) && !adminState.knownPaymentReceivedIds.has(t.transaction_id));
   
   if (newPayments.length > 0) {
-    for (const tx of newPayments) {
-      adminState.knownPaymentReceivedIds.add(tx.transaction_id);
-    }
-    playAlertSound(8);
+    newPayments.forEach(t => adminState.knownPaymentReceivedIds.add(t.transaction_id));
+    const firstPayment = newPayments[0];
+    playAlertSound(10);
     showBrowserNotification(
-      '💰 ¡NUEVO PAGO RECIBIDO!',
-      `${newPayments.length} pago(s) nuevo(s) requieren acción. Revisá el dashboard.`
+      '💰 ¡PAGO CONFIRMADO POR MP!',
+      `Pago recibido de ${firstPayment.client_name || 'Cliente'}. Acción requerida: Enviar ${firstPayment.amount_target || ''} ${firstPayment.currency_target || ''}.`
     );
   }
 }
