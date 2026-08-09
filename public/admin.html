@@ -29,25 +29,24 @@
     .rate-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-radius: 10px; margin-bottom: 6px; background: rgba(255,255,255,0.03); }
     .rate-row.best { background: rgba(52, 211, 153, 0.12); border: 1px solid rgba(52, 211, 153, 0.3); }
     .rate-platform { font-weight: 600; font-size: 0.95rem; }
-    .rate-price { font-family: 'Outfit', monospace; font-size: 1.1rem; font-weight: 700; }
-    .rate-badge { font-size: 0.7rem; background: var(--color-emerald); color: #000; padding: 2px 8px; border-radius: 20px; font-weight: 700; margin-left: 8px; }
-    .rates-updated { font-size: 0.75rem; color: var(--text-muted); margin-top: 8px; text-align: right; }
-
-    /* Payout Action Cards */
-    .payout-card { background: rgba(251, 191, 36, 0.08); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: 16px; padding: 20px; margin-bottom: 16px; animation: pulseGlow 2s ease-in-out infinite; }
-    @keyframes pulseGlow { 0%, 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0); } 50% { box-shadow: 0 0 20px 4px rgba(251, 191, 36, 0.15); } }
-    .payout-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
-    .payout-header h4 { margin: 0; color: #fbbf24; display: flex; align-items: center; gap: 8px; }
-    .payout-details { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
-    .payout-field { background: rgba(0,0,0,0.2); border-radius: 10px; padding: 12px; }
-    .payout-field .label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-    .payout-field .value { font-family: 'Outfit', monospace; font-size: 1rem; font-weight: 600; word-break: break-all; }
+    .payout-card { background: rgba(240, 185, 11, 0.08); border: 1px solid rgba(240, 185, 11, 0.3); border-radius: 16px; padding: 20px; margin-bottom: 24px; }
+    .payout-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .payout-header h4 { margin: 0; color: var(--color-primary); font-size: 1.1rem; display: flex; align-items: center; gap: 8px; }
+    .payout-details { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px; }
+    .payout-field { background: rgba(0, 0, 0, 0.3); padding: 12px; border-radius: 10px; }
+    .payout-field .label { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; }
+    .payout-field .value { font-size: 1rem; font-weight: 600; color: var(--text-main); }
     .payout-field .value.highlight { color: var(--color-emerald); font-size: 1.2rem; }
-    .payout-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-    .btn-complete { background: var(--color-emerald); color: #000; font-weight: 700; padding: 10px 20px; border-radius: 10px; border: none; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; }
-    .btn-complete:hover { filter: brightness(1.1); }
-    .btn-refund { background: rgba(239, 68, 68, 0.15); color: #ef4444; font-weight: 600; padding: 10px 16px; border-radius: 10px; border: 1px solid rgba(239, 68, 68, 0.3); cursor: pointer; font-size: 0.85rem; }
-    .profit-badge { font-size: 0.85rem; background: rgba(52, 211, 153, 0.15); color: var(--color-emerald); padding: 4px 12px; border-radius: 20px; font-weight: 600; }
+    .payout-actions { display: flex; gap: 12px; }
+    .btn-complete { background: var(--color-emerald); color: #000; font-weight: 700; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-size: 0.9rem; }
+    .btn-complete:hover { opacity: 0.9; }
+    .rates-panel { margin-bottom: 24px; }
+    .rates-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+    .rates-card { background: rgba(10, 14, 23, 0.6); border: 1px solid var(--bg-card-border); border-radius: 12px; padding: 16px; }
+    .rates-card h4 { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 12px; border-bottom: 1px solid var(--bg-card-border); padding-bottom: 8px; }
+    .rate-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 0.85rem; }
+    .rate-platform { font-weight: 600; text-transform: capitalize; }
+    .rate-best { color: var(--color-emerald); font-weight: 700; }
   </style>
 </head>
 <body class="dark-theme">
@@ -70,8 +69,8 @@
   <!-- Header -->
   <header class="navbar">
     <div class="container navbar-inner">
-      <div class="brand">
-        <div class="brand-icon"><i data-lucide="shield"></i></div>
+      <div class="brand" style="display:flex; align-items:center; gap:12px;">
+        <img src="logo.png" alt="NOVA FX Logo" style="height: 46px; border-radius: 10px; box-shadow: 0 0 16px rgba(59, 130, 246, 0.4);" />
         <div class="brand-text">
           <span class="brand-title">NOVA<span class="highlight">FX</span> Admin</span>
           <span class="brand-subtitle">Panel de Control & Soporte de Transacciones</span>
