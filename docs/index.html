@@ -321,17 +321,17 @@
         <div class="step-line" id="line-1"></div>
         <div class="step-item" id="step-2">
           <div class="step-icon"><i data-lucide="check-circle"></i></div>
-          <span class="step-label">Acreditado</span>
+          <span class="step-label">Pago Confirmado</span>
         </div>
         <div class="step-line" id="line-2"></div>
         <div class="step-item" id="step-3">
-          <div class="step-icon"><i data-lucide="arrow-right-left"></i></div>
-          <span class="step-label">Binance Spot</span>
+          <div class="step-icon"><i data-lucide="cpu"></i></div>
+          <span class="step-label">Negociando Tasa</span>
         </div>
         <div class="step-line" id="line-3"></div>
         <div class="step-item" id="step-4">
           <div class="step-icon"><i data-lucide="send"></i></div>
-          <span class="step-label">Desembolso PIX</span>
+          <span class="step-label">Desembolso</span>
         </div>
         <div class="step-line" id="line-4"></div>
         <div class="step-item" id="step-5">
@@ -340,8 +340,26 @@
         </div>
       </div>
 
-      <!-- Modal Body Content: QR Code / Deposit Instructions -->
+      <!-- Modal Body Content: QR Code / Deposit Instructions / AI Negotiation -->
       <div class="modal-body">
+
+        <!-- AI Processing & Order Negotiation Display (Shown when payment is received) -->
+        <div id="modal-processing-negotiation" class="modal-section hidden">
+          <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 16px; padding: 24px; text-align: center;">
+            <div class="ai-pulse-icon" style="font-size: 2.8rem; margin-bottom: 12px; display: inline-block;">⚡</div>
+            <h3 style="color: #60a5fa; margin: 0 0 8px; font-size: 1.2rem;">Pago Confirmado — Algoritmo de Tasa en Ejecución</h3>
+            <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 18px; line-height: 1.5;">
+              Optimizando liquidez y ejecutando postura en libro de órdenes para garantizar el mejor rendimiento. El dinero se acreditará automáticamente en tu cuenta.
+            </p>
+            <div style="background: rgba(0,0,0,0.3); height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 12px;">
+              <div class="progress-bar-inner" style="background: linear-gradient(90deg, #3b82f6, #34d399); height: 100%; border-radius: 4px;"></div>
+            </div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); display: flex; justify-content: space-between;">
+              <span>🤖 Ruteo Cuántico de Liquidez</span>
+              <span>Tiempo estimado: 2 - 5 min</span>
+            </div>
+          </div>
+        </div>
         
         <!-- Deposit Instructions for ARS -> BRL -->
         <div id="modal-deposit-ars" class="modal-section hidden">

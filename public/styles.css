@@ -703,6 +703,26 @@ body {
 
 .hidden { display: none !important; }
 
+/* AI Negotiation Animations */
+.ai-pulse-icon {
+  animation: spinPulse 2s infinite ease-in-out;
+}
+.progress-bar-inner {
+  animation: progressPulse 2s ease-in-out infinite alternate;
+}
+
+@keyframes spinPulse {
+  0% { transform: scale(1) rotate(0deg); filter: drop-shadow(0 0 4px rgba(59, 130, 246, 0.4)); }
+  50% { transform: scale(1.2) rotate(180deg); filter: drop-shadow(0 0 16px rgba(59, 130, 246, 0.8)); }
+  100% { transform: scale(1) rotate(360deg); filter: drop-shadow(0 0 4px rgba(59, 130, 246, 0.4)); }
+}
+
+@keyframes progressPulse {
+  0% { width: 25%; }
+  50% { width: 70%; }
+  100% { width: 92%; }
+}
+
 /* Responsive */
 @media (max-width: 900px) {
   .main-content {

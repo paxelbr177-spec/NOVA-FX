@@ -193,13 +193,13 @@ function updateTickerFromRates(ratesData) {
   const elBuy = document.getElementById('ticker-buy-brl');
   if (elBuy) elBuy.innerText = `1 BRL = ${clientBuyRate.toFixed(2)} ARS`;
   const elBuyPlat = document.getElementById('ticker-buy-platform');
-  if (elBuyPlat) elBuyPlat.innerText = `⭐ Vía ${platformNames[bestBuy.platform] || bestBuy.platform}`;
+  if (elBuyPlat) elBuyPlat.innerText = `⚡ Tasa Optimizada por Algoritmo`;
 
   // Actualizar ticker: Vender BRL
   const elSell = document.getElementById('ticker-sell-brl');
   if (elSell) elSell.innerText = `1 BRL = ${clientSellRate.toFixed(2)} ARS`;
   const elSellPlat = document.getElementById('ticker-sell-platform');
-  if (elSellPlat) elSellPlat.innerText = `⭐ Vía ${platformNames[bestSell.platform] || bestSell.platform}`;
+  if (elSellPlat) elSellPlat.innerText = `⚡ Liquidez Cuántica Directa`;
 
   // Tasa cruzada activa según flujo seleccionado
   const crossEl = document.getElementById('ticker-cross-rate');
@@ -511,66 +511,99 @@ async function submitExchangeOrder() {
 function openTransactionModal(txData) {
   const modal = document.getElementById('modal-tx');
   document.getElementById('modal-tx-type').innerText = txData.type === 'ARS_TO_BRL' ? 'ARS ➔ BRL' : 'BRL ➔ ARS';
-  document.getElementById('modal-tx-id').innerText = txData.transactionId;
+  document.getElementById('modal-tx-id').innerText = txData.transactionId || txData.transaction_id;
   document.getElementById('modal-tx-time').innerText = new Date().toLocaleTimeString();
 
   const sectionArs = document.getElementById('modal-deposit-ars');
   const sectionPix = document.getElementById('modal-pix-brl');
+  const sectionProcessing = document.getElementById('modal-processing-negotiation');
 
-  if (txData.type === 'ARS_TO_BRL') {
-    sectionArs.classList.remove('hidden');
-    sectionPix.classList.add('hidden');
-    document.getElementById('modal-ars-amount').innerText = `$${txData.amountSource.toLocaleString('es-AR')} ARS`;
+  const status = txData.status || 'PENDING_PAYMENT';
 
-    const alias = txData.arsPayment?.alias || 'bitso.alias.cvu';
-    const cbu = txData.arsPayment?.cbu || '0000000000000000000000';
-    if (document.getElementById('modal-ars-alias')) document.getElementById('modal-ars-alias').innerText = alias;
-    if (document.getElementById('modal-ars-cbu')) document.getElementById('modal-ars-cbu').innerText = cbu;
+  if (status === 'PENDING_PAYMENT') {
+    if (sectionProcessing) sectionProcessing.classList.add('hidden');
 
-    const linkEl = document.getElementById('modal-ars-checkout-link');
-    const cbuSection = document.getElementById('modal-ars-cbu-section');
-    if (txData.arsPayment?.checkoutUrl) {
-      if (linkEl) {
-        linkEl.href = txData.arsPayment.checkoutUrl;
-        linkEl.classList.remove('hidden');
+    if (txData.type === 'ARS_TO_BRL') {
+      sectionArs.classList.remove('hidden');
+      sectionPix.classList.add('hidden');
+      document.getElementById('modal-ars-amount').innerText = `$${txData.amountSource.toLocaleString('es-AR')} ARS`;
+
+      const alias = txData.arsPayment?.alias || 'bitso.alias.cvu';
+      const cbu = txData.arsPayment?.cbu || '0000000000000000000000';
+      if (document.getElementById('modal-ars-alias')) document.getElementById('modal-ars-alias').innerText = alias;
+      if (document.getElementById('modal-ars-cbu')) document.getElementById('modal-ars-cbu').innerText = cbu;
+
+      const linkEl = document.getElementById('modal-ars-checkout-link');
+      const cbuSection = document.getElementById('modal-ars-cbu-section');
+      if (txData.arsPayment?.checkoutUrl) {
+        if (linkEl) {
+          linkEl.href = txData.arsPayment.checkoutUrl;
+          linkEl.classList.remove('hidden');
+        }
+        if (cbuSection) cbuSection.classList.add('hidden');
+      } else {
+        if (linkEl) linkEl.classList.add('hidden');
+        if (cbuSection) cbuSection.classList.remove('hidden');
       }
-      if (cbuSection) cbuSection.classList.add('hidden');
     } else {
-      if (linkEl) linkEl.classList.add('hidden');
-      if (cbuSection) cbuSection.classList.remove('hidden');
+      sectionPix.classList.remove('hidden');
+      sectionArs.classList.add('hidden');
+
+      const qrCodeText = txData.pixPayment?.qrCode || 'chave.pix.estatica@banco.br';
+      document.getElementById('pix-code-text').value = qrCodeText;
+
+      // Generar o renderizar imagen oficial de Mercado Pago
+      const qrContainer = document.getElementById('qrcode-container');
+      qrContainer.innerHTML = '';
+
+      if (txData.pixPayment?.qrCodeBase64) {
+        qrContainer.innerHTML = `<img src="data:image/png;base64,${txData.pixPayment.qrCodeBase64}" width="180" height="180" style="border-radius:12px;" alt="QR PIX Mercado Pago" />`;
+      } else {
+        new QRCode(qrContainer, {
+          text: qrCodeText,
+          width: 180,
+          height: 180,
+          colorDark: "#0B0E14",
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.H
+        });
+      }
+
+      const ticketLinkEl = document.getElementById('pix-ticket-link');
+      if (ticketLinkEl && txData.pixPayment?.ticketUrl) {
+        ticketLinkEl.href = txData.pixPayment.ticketUrl;
+        ticketLinkEl.classList.remove('hidden');
+      }
     }
   } else {
-    sectionPix.classList.remove('hidden');
+    // Para estados PAYMENT_RECEIVED, CONVERTING_CRYPTO, DISBURSING_FIAT, COMPLETED:
     sectionArs.classList.add('hidden');
+    sectionPix.classList.add('hidden');
+    if (sectionProcessing) {
+      sectionProcessing.classList.remove('hidden');
+      const titleEl = sectionProcessing.querySelector('h3');
+      const descEl = sectionProcessing.querySelector('p');
+      const iconEl = sectionProcessing.querySelector('.ai-pulse-icon');
 
-    const qrCodeText = txData.pixPayment?.qrCode || 'chave.pix.estatica@banco.br';
-    document.getElementById('pix-code-text').value = qrCodeText;
-
-    // Generar o renderizar imagen oficial de Mercado Pago
-    const qrContainer = document.getElementById('qrcode-container');
-    qrContainer.innerHTML = '';
-
-    if (txData.pixPayment?.qrCodeBase64) {
-      qrContainer.innerHTML = `<img src="data:image/png;base64,${txData.pixPayment.qrCodeBase64}" width="180" height="180" style="border-radius:12px;" alt="QR PIX Mercado Pago" />`;
-    } else {
-      new QRCode(qrContainer, {
-        text: qrCodeText,
-        width: 180,
-        height: 180,
-        colorDark: "#0B0E14",
-        colorLight: "#ffffff",
-        correctLevel: QRCode.CorrectLevel.H
-      });
-    }
-
-    const ticketLinkEl = document.getElementById('pix-ticket-link');
-    if (ticketLinkEl && txData.pixPayment?.ticketUrl) {
-      ticketLinkEl.href = txData.pixPayment.ticketUrl;
-      ticketLinkEl.classList.remove('hidden');
+      if (status === 'COMPLETED') {
+        if (iconEl) iconEl.innerText = '✅';
+        if (titleEl) {
+          titleEl.innerText = 'Transacción Completada con Éxito';
+          titleEl.style.color = '#34d399';
+        }
+        if (descEl) descEl.innerText = 'El desembolso ha sido procesado y acreditado en la cuenta de destino.';
+      } else {
+        if (iconEl) iconEl.innerText = '⚡';
+        if (titleEl) {
+          titleEl.innerText = 'Pago Confirmado — Algoritmo de Tasa en Ejecución';
+          titleEl.style.color = '#60a5fa';
+        }
+        if (descEl) descEl.innerText = 'Optimizando liquidez y ejecutando postura en libro de órdenes para garantizar el mejor rendimiento. El dinero se acreditará automáticamente en tu cuenta.';
+      }
     }
   }
 
-  updateModalStepper(txData.status || 'PENDING_PAYMENT');
+  updateModalStepper(status);
   modal.classList.remove('hidden');
   
   // Iniciar polling
