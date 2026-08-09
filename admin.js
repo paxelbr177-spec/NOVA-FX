@@ -20,8 +20,18 @@ function getAudioContext() {
   if (!adminState.audioCtx) {
     adminState.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   }
+  if (adminState.audioCtx.state === 'suspended') {
+    adminState.audioCtx.resume().catch(() => {});
+  }
   return adminState.audioCtx;
 }
+
+// Desbloquear audio automáticamente al hacer clic en cualquier lugar del admin
+document.addEventListener('click', () => {
+  if (adminState.audioCtx && adminState.audioCtx.state === 'suspended') {
+    adminState.audioCtx.resume().catch(() => {});
+  }
+}, { once: false });
 
 function playAlertSound(times = 5) {
   if (adminState.isMuted) return;
@@ -214,11 +224,27 @@ async function loadAdminData() {
 }
 
 function checkForNewEvents(oldTxs, newTxs) {
-  if (!oldTxs || oldTxs.length === 0) {
-    newTxs.forEach(t => {
-      adminState.knownTxIds.add(t.transaction_id);
-      if (t.status === 'PAYMENT_RECEIVED') adminState.knownPaymentReceivedIds.add(t.transaction_id);
+  const isFirstLoad = !oldTxs || oldTxs.length === 0;
+
+  if (isFirstLoad) {
+    const now = Date.now();
+    // Detectar transacciones recién creadas (últimos 10 minutos)
+    const recentNewTxs = newTxs.filter(t => {
+      const txTime = new Date(t.created_at || Date.now()).getTime();
+      return (now - txTime) < 600000 && !adminState.knownTxIds.has(t.transaction_id);
     });
+
+    newTxs.forEach(t => adminState.knownTxIds.add(t.transaction_id));
+
+    if (recentNewTxs.length > 0) {
+      const firstTx = recentNewTxs[0];
+      const typeStr = firstTx.type === 'ARS_TO_BRL' ? 'ARS ➔ BRL' : 'BRL ➔ ARS';
+      playAlertSound(6);
+      showBrowserNotification(
+        '🚨 ¡NUEVA ORDEN INICIADA!',
+        `Orden ${typeStr} de ${firstTx.client_name || 'Cliente'} por ${firstTx.amount_source} ${firstTx.currency_source}.`
+      );
+    }
     return;
   }
 
