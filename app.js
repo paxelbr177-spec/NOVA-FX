@@ -21,17 +21,17 @@ const fallbackRates = {
 };
 
 /**
- * Calcula dinámicamente el monto mínimo (~1 USD) según la cotización Binance en tiempo real
+ * Obtiene el monto mínimo según los límites de las plataformas (Belo, Satoshi Tango, Mercado Pago)
  */
 function getDynamicMinLimit() {
   if (state.currentFlow === 'ARS_TO_BRL') {
-    const minArs = 1; // Límite removido para pruebas
+    const minArs = 1500; // $1,500 ARS (Mínimo de operación en MP / Satoshi Tango)
     return {
       limit: minArs,
       currencyStr: `$${minArs.toLocaleString('es-AR')} ARS`
     };
   } else {
-    const minBrl = 1; // Límite removido para pruebas
+    const minBrl = 5; // 5.00 BRL (Mínimo de operación en Belo / PIX)
     return {
       limit: minBrl,
       currencyStr: `R$ ${minBrl.toFixed(2)} BRL`

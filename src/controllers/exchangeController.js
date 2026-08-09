@@ -57,8 +57,14 @@ export const createTransaction = async (req, res, next) => {
             return res.status(400).json({ success: false, error: 'El monto debe ser un número mayor a 0.' });
         }
 
+        const MIN_ARS = 1500;
+        const MIN_BRL = 5;
+
         let transaction;
         if (type === 'ARS_TO_BRL') {
+            if (numAmount < MIN_ARS) {
+                return res.status(400).json({ success: false, error: `El monto mínimo para operaciones ARS → BRL es $${MIN_ARS.toLocaleString('es-AR')} ARS.` });
+            }
             if (!clientPixKey || !clientPixKeyType) {
                 return res.status(400).json({ success: false, error: 'Faltan datos de PIX (clientPixKey, clientPixKeyType) para ARS_TO_BRL.' });
             }
@@ -66,6 +72,9 @@ export const createTransaction = async (req, res, next) => {
                 amountARS: numAmount, clientPixKey, clientPixKeyType, clientName, clientEmail, clientPhone
             });
         } else {
+            if (numAmount < MIN_BRL) {
+                return res.status(400).json({ success: false, error: `El monto mínimo para operaciones BRL → ARS es R$ ${MIN_BRL.toFixed(2)} BRL.` });
+            }
             if (!clientCbuCvu || (!payerEmail && !clientEmail)) {
                 return res.status(400).json({ success: false, error: 'Faltan datos bancarios para BRL_TO_ARS.' });
             }
